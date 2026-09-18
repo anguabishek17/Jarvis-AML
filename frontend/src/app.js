@@ -628,67 +628,146 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastSimulationResult = null;
 
   async function fetchSimulationTargets(scenarioId) {
+    if (!scenarioId) return null;
     try {
+      console.log("[Simulator] Fetching targets for scenario:", scenarioId);
       const res = await fetch(`${API_BASE}/api/simulate/${scenarioId}/targets`);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        console.error("[Simulator] Targets endpoint returned status:", res.status);
+        simCachedTargets = null;
+        return null;
+      }
       simCachedTargets = await res.json();
+      console.log("[Simulator] Targets received:", simCachedTargets);
       return simCachedTargets;
     } catch (err) {
       console.error("[Simulator] Error fetching targets:", err);
+      simCachedTargets = null;
       return null;
     }
   }
 
   function populateSimulationTargetsDropdown(selectedTargetId = null) {
-    if (!simCachedTargets || !simTargetSelect) return;
+    if (!simTargetSelect) return;
     simTargetSelect.innerHTML = "";
 
+    if (!simCachedTargets) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Unable to load investigation targets (API Error).";
+      simTargetSelect.appendChild(opt);
+      if (runSimulationBtn) runSimulationBtn.disabled = true;
+      return;
+    }
+
     if (simCurrentTargetType === "account") {
-      simTargetLabel.textContent = "SELECT TARGET ACCOUNT / ENTITY";
+      if (simTargetLabel) simTargetLabel.textContent = "SELECT TARGET ACCOUNT";
       const accounts = simCachedTargets.accounts || [];
+
+      if (accounts.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No accounts available for this investigation.";
+        simTargetSelect.appendChild(opt);
+        if (runSimulationBtn) runSimulationBtn.disabled = true;
+        return;
+      }
+
+      // Default placeholder option
+      const defaultOpt = document.createElement("option");
+      defaultOpt.value = "";
+      defaultOpt.textContent = "Select an account...";
+      defaultOpt.disabled = true;
+      if (!selectedTargetId) defaultOpt.selected = true;
+      simTargetSelect.appendChild(defaultOpt);
+
       accounts.forEach(acc => {
         const opt = document.createElement("option");
-        opt.value = acc.id;
-        const vol = (acc.inflow + acc.outflow).toLocaleString('en-IN');
-        opt.textContent = `${acc.id} [${acc.role}] — ₹${vol}`;
-        if (selectedTargetId && acc.id === selectedTargetId) {
+        const accId = acc.account_id || acc.id || "UNKNOWN";
+        const role = acc.probable_role || acc.role || "UNKNOWN";
+        const inflow = typeof acc.inflow_total_inr === "number" ? acc.inflow_total_inr : (acc.inflow || 0);
+        const outflow = typeof acc.outflow_total_inr === "number" ? acc.outflow_total_inr : (acc.outflow || 0);
+        const vol = (inflow + outflow).toLocaleString('en-IN');
+        
+        opt.value = accId;
+        opt.textContent = `${accId} [${role}] — ₹${vol}`;
+        
+        if (selectedTargetId && accId === selectedTargetId) {
           opt.selected = true;
+          defaultOpt.selected = false;
         }
         simTargetSelect.appendChild(opt);
       });
     } else {
-      simTargetLabel.textContent = "SELECT TARGET TRANSACTION EDGE";
+      if (simTargetLabel) simTargetLabel.textContent = "SELECT TARGET TRANSACTION";
       const txns = simCachedTargets.transactions || [];
+
+      if (txns.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No transactions available for this investigation.";
+        simTargetSelect.appendChild(opt);
+        if (runSimulationBtn) runSimulationBtn.disabled = true;
+        return;
+      }
+
+      // Default placeholder option
+      const defaultOpt = document.createElement("option");
+      defaultOpt.value = "";
+      defaultOpt.textContent = "Select a transaction...";
+      defaultOpt.disabled = true;
+      if (!selectedTargetId) defaultOpt.selected = true;
+      simTargetSelect.appendChild(defaultOpt);
+
       txns.forEach(tx => {
         const opt = document.createElement("option");
-        opt.value = tx.transaction_id;
-        const amt = tx.amount.toLocaleString('en-IN');
-        opt.textContent = `${tx.transaction_id}: ${tx.sender} → ${tx.receiver} (₹${amt})`;
-        if (selectedTargetId && tx.transaction_id === selectedTargetId) {
+        const txId = tx.transaction_id || tx.id || "TXN";
+        const sender = tx.sender_account || tx.sender || "UNKNOWN";
+        const receiver = tx.receiver_account || tx.receiver || "UNKNOWN";
+        const amt = (tx.amount || 0).toLocaleString('en-IN');
+        
+        opt.value = txId;
+        opt.textContent = `${txId}: ${sender} → ${receiver} (₹${amt})`;
+        
+        if (selectedTargetId && txId === selectedTargetId) {
           opt.selected = true;
+          defaultOpt.selected = false;
         }
         simTargetSelect.appendChild(opt);
       });
     }
+
+    updateSimButtonState();
+  }
+
+  function updateSimButtonState() {
+    if (runSimulationBtn && simTargetSelect) {
+      runSimulationBtn.disabled = !simTargetSelect.value || simTargetSelect.value === "";
+    }
+  }
+
+  if (simTargetSelect) {
+    simTargetSelect.addEventListener("change", updateSimButtonState);
   }
 
   async function openSimulatorWithTarget(targetType = "account", targetId = null) {
-    if (!currentCaseData) return;
+    const activeScenarioId = currentCaseData ? currentCaseData.scenario_id : (scenarioSelect ? scenarioSelect.value : "SCENARIO_G");
     simCurrentTargetType = targetType;
+
     if (simTypeAccountBtn && simTypeTxnBtn) {
       simTypeAccountBtn.classList.toggle("active", targetType === "account");
       simTypeTxnBtn.classList.toggle("active", targetType === "transaction");
     }
 
-    await fetchSimulationTargets(currentCaseData.scenario_id);
-    populateSimulationTargetsDropdown(targetId);
-
     if (simulatorModal) {
       simulatorModal.classList.remove("hidden");
     }
 
-    if (targetId) {
-      // Auto-run simulation if an entity was explicitly clicked from drawer or graph
+    // Always fetch fresh targets for the active case to ensure no stale data
+    await fetchSimulationTargets(activeScenarioId);
+    populateSimulationTargetsDropdown(targetId);
+
+    if (targetId && simTargetSelect && simTargetSelect.value === targetId) {
       runSimulation();
     }
   }
@@ -720,18 +799,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (closeSimulatorModalBtn) {
     closeSimulatorModalBtn.addEventListener("click", () => {
-      simulatorModal.classList.add("hidden");
+      if (simulatorModal) simulatorModal.classList.add("hidden");
     });
   }
 
   if (simResetViewBtn) {
     simResetViewBtn.addEventListener("click", () => {
-      simulatorModal.classList.add("hidden");
+      if (simulatorModal) simulatorModal.classList.add("hidden");
     });
   }
 
   async function runSimulation() {
-    if (!currentCaseData || !simTargetSelect.value) return;
+    const activeScenarioId = currentCaseData ? currentCaseData.scenario_id : (scenarioSelect ? scenarioSelect.value : "SCENARIO_G");
+    if (!simTargetSelect || !simTargetSelect.value) return;
     
     runSimulationBtn.disabled = true;
     runSimulationBtn.textContent = "⚡ SIMULATING DISRUPTION...";
@@ -743,7 +823,7 @@ document.addEventListener("DOMContentLoaded", () => {
         direction: simDirectionSelect ? simDirectionSelect.value : "both"
       };
 
-      const res = await fetch(`${API_BASE}/api/simulate/${currentCaseData.scenario_id}`, {
+      const res = await fetch(`${API_BASE}/api/simulate/${activeScenarioId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -779,70 +859,74 @@ document.addEventListener("DOMContentLoaded", () => {
     if (simEmptyState) simEmptyState.classList.add("hidden");
     if (simResultsContainer) simResultsContainer.classList.remove("hidden");
 
+    // Robust extraction supporting comparison block
+    const comp = sim.comparison || {};
     const before = sim.before || {};
     const after = sim.after || {};
     const impact = sim.impact || {};
 
     // 1. Comparison KPIs
-    const bMetrics = before.metrics || {};
-    const aMetrics = after.metrics || {};
+    const bPaths = comp.attack_paths ? comp.attack_paths.before : ((before.attack_paths || []).length);
+    const aPaths = comp.attack_paths ? comp.attack_paths.after : ((after.attack_paths || []).length);
+    const pathImpact = sim.path_impact || impact.affected_paths || [];
+    const brokenCount = pathImpact.filter(p => p.status === "BROKEN" || p.status === "SEVERED").length;
 
-    const beforePathsCount = (before.attack_paths || []).length;
-    const afterPathsCount = (after.attack_paths || []).length;
-    document.getElementById("simBeforePaths").textContent = beforePathsCount;
-    document.getElementById("simAfterPaths").textContent = afterPathsCount;
-    const brokenCount = (impact.affected_paths || []).length;
+    document.getElementById("simBeforePaths").textContent = bPaths;
+    document.getElementById("simAfterPaths").textContent = aPaths;
     document.getElementById("simDiffPathsText").textContent = brokenCount > 0 ? `-${brokenCount} broken` : "0 broken";
 
-    document.getElementById("simBeforeNodes").textContent = bMetrics.total_accounts || 0;
-    document.getElementById("simAfterNodes").textContent = aMetrics.total_accounts || 0;
-    const diffNodes = (bMetrics.total_accounts || 0) - (aMetrics.total_accounts || 0);
+    const bNodes = comp.suspicious_nodes ? comp.suspicious_nodes.before : (before.metrics ? before.metrics.total_accounts : 0);
+    const aNodes = comp.suspicious_nodes ? comp.suspicious_nodes.after : (after.metrics ? after.metrics.total_accounts : 0);
+    document.getElementById("simBeforeNodes").textContent = bNodes;
+    document.getElementById("simAfterNodes").textContent = aNodes;
+    const diffNodes = bNodes - aNodes;
     document.getElementById("simDiffNodesText").textContent = diffNodes > 0 ? `-${diffNodes} nodes` : "0 diff";
 
-    const bVol = (bMetrics.total_volume_inr || 0);
-    const aVol = (aMetrics.total_volume_inr || 0);
+    const bVol = comp.total_volume_inr ? comp.total_volume_inr.before : (before.metrics ? before.metrics.total_volume_inr : 0);
+    const aVol = comp.total_volume_inr ? comp.total_volume_inr.after : (after.metrics ? after.metrics.total_volume_inr : 0);
     document.getElementById("simBeforeVol").textContent = `₹${(bVol / 100000).toFixed(1)}L`;
     document.getElementById("simAfterVol").textContent = `₹${(aVol / 100000).toFixed(1)}L`;
     const volDiff = bVol - aVol;
     document.getElementById("simDiffVolText").textContent = volDiff > 0 ? `-₹${(volDiff / 100000).toFixed(1)}L` : "₹0";
 
-    const bHops = bMetrics.max_hop_depth || 0;
-    const aHops = aMetrics.max_hop_depth || 0;
+    const bHops = comp.max_hop_depth ? comp.max_hop_depth.before : (before.metrics ? before.metrics.max_hop_depth : 0);
+    const aHops = comp.max_hop_depth ? comp.max_hop_depth.after : (after.metrics ? after.metrics.max_hop_depth : 0);
     document.getElementById("simBeforeHops").textContent = bHops;
     document.getElementById("simAfterHops").textContent = aHops;
     document.getElementById("simDiffHopsText").textContent = aHops < bHops ? `Reduced by ${bHops - aHops}` : "Unchanged";
 
-    const bRet = Math.round((bMetrics.flow_retention_ratio || 0) * 100);
-    const aRet = Math.round((aMetrics.flow_retention_ratio || 0) * 100);
+    const bRet = comp.max_retention_pct ? Math.round(comp.max_retention_pct.before) : Math.round((before.metrics ? before.metrics.flow_retention_ratio : 0) * 100);
+    const aRet = comp.max_retention_pct ? Math.round(comp.max_retention_pct.after) : Math.round((after.metrics ? after.metrics.flow_retention_ratio : 0) * 100);
     document.getElementById("simBeforeRet").textContent = `${bRet}%`;
     document.getElementById("simAfterRet").textContent = `${aRet}%`;
     document.getElementById("simDiffRetText").textContent = `${aRet - bRet}% delta`;
 
-    const bPrio = Math.round(before.priority || 0);
-    const aPrio = Math.round(after.priority || 0);
+    const bPrio = comp.case_priority_score ? Math.round(comp.case_priority_score.before) : Math.round(before.priority || 0);
+    const aPrio = comp.case_priority_score ? Math.round(comp.case_priority_score.after) : Math.round(after.priority || 0);
     document.getElementById("simBeforePriority").textContent = bPrio;
     document.getElementById("simAfterPriority").textContent = aPrio;
     const prioDiff = aPrio - bPrio;
     document.getElementById("simDiffPriorityText").textContent = prioDiff < 0 ? `${prioDiff} pts` : `+${prioDiff} pts`;
 
     // 2. Money Trail DNA Shift
-    const bDna = before.dna || {};
-    const aDna = after.dna || {};
-    document.getElementById("simOriginalDnaSig").textContent = bDna.signature || "N/A";
-    document.getElementById("simSimulatedDnaSig").textContent = aDna.signature || "N/A";
+    const dnaImpact = sim.dna_impact || {};
+    const bDnaSig = comp.primary_dna_signature ? comp.primary_dna_signature.before : (dnaImpact.signature_before || (before.dna ? before.dna.signature : "N/A"));
+    const aDnaSig = comp.primary_dna_signature ? comp.primary_dna_signature.after : (dnaImpact.signature_after || (after.dna ? after.dna.signature : "N/A"));
+    document.getElementById("simOriginalDnaSig").textContent = bDnaSig || "N/A";
+    document.getElementById("simSimulatedDnaSig").textContent = aDnaSig || "N/A";
 
     const genesCompContainer = document.getElementById("simDnaGenesComparison");
     if (genesCompContainer) {
       genesCompContainer.innerHTML = "";
-      const dnaDiffs = impact.dna_comparison || {};
-      const geneKeys = ["typology", "velocity", "dispersion", "retention", "channel", "topology"];
+      const dnaDiffs = (dnaImpact.genes) || impact.dna_comparison || {};
+      const geneKeys = ["typology", "velocity", "dispersion", "retention", "channel", "topology", "role_sequence"];
 
       geneKeys.forEach(gk => {
         const geneInfo = dnaDiffs[gk] || { before: "N/A", after: "N/A", changed: false };
         const card = document.createElement("div");
         card.className = `sim-gene-card ${geneInfo.changed ? "mutated" : ""}`;
         card.innerHTML = `
-          <div class="sim-gene-name">${gk}</div>
+          <div class="sim-gene-name">${gk.replace('_', ' ')}</div>
           <div class="sim-gene-diff">
             <span style="color:#64748b;">${geneInfo.before}</span>
             <span style="color:#0284c7;">→</span>
@@ -858,21 +942,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const brokenBadge = document.getElementById("simBrokenPathsCountBadge");
     if (pathsList) {
       pathsList.innerHTML = "";
-      const pathComparisons = impact.affected_paths || [];
-      if (brokenBadge) brokenBadge.textContent = `${pathComparisons.length} Broken`;
+      const pathComparisons = sim.path_impact || impact.affected_paths || [];
+      if (brokenBadge) brokenBadge.textContent = `${brokenCount} Broken`;
 
       if (pathComparisons.length === 0) {
         pathsList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No attack paths disrupted by this removal.</div>`;
       } else {
         pathComparisons.forEach(p => {
+          const isBroken = p.status === "BROKEN" || p.status === "SEVERED";
           const row = document.createElement("div");
-          row.className = "sim-item-row broken";
+          row.className = `sim-item-row ${isBroken ? "broken" : ""}`;
+          const nodesStr = Array.isArray(p.nodes) ? p.nodes.join(" ➔ ") : (p.path_sequence ? p.path_sequence.join(" ➔ ") : (p.account_sequence ? p.account_sequence.join(" ➔ ") : ""));
           row.innerHTML = `
             <div>
-              <b style="color:#b91c1c;">${p.path_id}</b>: ${(p.nodes || []).join(" ➔ ")}
-              <div style="font-size:0.68rem; color:#7f1d1d; margin-top:2px;">${p.reason}</div>
+              <b style="color:${isBroken ? '#b91c1c' : '#0284c7'};">${p.path_id}</b>: ${nodesStr}
+              <div style="font-size:0.68rem; color:${isBroken ? '#7f1d1d' : '#64748b'}; margin-top:2px;">${p.reason || p.status}</div>
             </div>
-            <span class="badge score-high">BROKEN</span>
+            <span class="badge ${isBroken ? 'score-high' : 'score-low'}">${p.status || 'ACTIVE'}</span>
           `;
           pathsList.appendChild(row);
         });
@@ -883,7 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const patternsList = document.getElementById("simPatternsImpactList");
     if (patternsList) {
       patternsList.innerHTML = "";
-      const patImpact = impact.affected_patterns || {};
+      const patImpact = sim.pattern_impact || impact.affected_patterns || {};
       const removedPats = patImpact.removed || [];
       const persistedPats = patImpact.persisted || [];
       const newPats = patImpact.newly_detected || [];
@@ -894,19 +980,19 @@ document.addEventListener("DOMContentLoaded", () => {
         removedPats.forEach(p => {
           const row = document.createElement("div");
           row.className = "sim-item-row removed";
-          row.innerHTML = `<span><b>${p.pattern_type}</b> (${p.nodes.length} nodes)</span> <span class="badge score-high">REMOVED</span>`;
+          row.innerHTML = `<span><b>${p.pattern_type || p.title}</b></span> <span class="badge score-high">REMOVED</span>`;
           patternsList.appendChild(row);
         });
         persistedPats.forEach(p => {
           const row = document.createElement("div");
           row.className = "sim-item-row persisted";
-          row.innerHTML = `<span><b>${p.pattern_type}</b></span> <span class="badge score-low">PERSISTED</span>`;
+          row.innerHTML = `<span><b>${p.pattern_type || p.title}</b></span> <span class="badge score-low">PERSISTED</span>`;
           patternsList.appendChild(row);
         });
         newPats.forEach(p => {
           const row = document.createElement("div");
           row.className = "sim-item-row new";
-          row.innerHTML = `<span><b>${p.pattern_type}</b></span> <span class="badge badge-accent">NEW DETECTED</span>`;
+          row.innerHTML = `<span><b>${p.pattern_type || p.title}</b></span> <span class="badge badge-accent">NEW DETECTED</span>`;
           patternsList.appendChild(row);
         });
       }
@@ -916,17 +1002,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const roleList = document.getElementById("simRoleShiftsList");
     if (roleList) {
       roleList.innerHTML = "";
-      const roleShifts = impact.role_shifts || [];
+      const roleShifts = sim.role_impact || impact.role_shifts || [];
       if (roleShifts.length === 0) {
         roleList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No downstream role re-assignments occurred.</div>`;
       } else {
         roleShifts.forEach(r => {
           const row = document.createElement("div");
           row.className = "sim-item-row";
+          const rBefore = r.role_before || r.original_role || "UNKNOWN";
+          const rAfter = r.role_after || r.simulated_role || "UNKNOWN";
+          const confB = Math.round((r.confidence_before || r.original_confidence || 0) * 100);
+          const confA = Math.round((r.confidence_after || r.simulated_confidence || 0) * 100);
           row.innerHTML = `
             <div>
               <b>${r.account_id}</b>
-              <div style="font-size:0.68rem; color:#64748b;">${r.original_role} (${Math.round(r.original_confidence*100)}%) ➔ ${r.simulated_role} (${Math.round(r.simulated_confidence*100)}%)</div>
+              <div style="font-size:0.68rem; color:#64748b;">${rBefore} (${confB}%) ➔ ${rAfter} (${confA}%)</div>
             </div>
             <span class="badge score-low">Role Shift</span>
           `;
@@ -939,7 +1029,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const timelineList = document.getElementById("simTemporalStorylineList");
     if (timelineList) {
       timelineList.innerHTML = "";
-      const tempStages = impact.temporal_impact ? impact.temporal_impact.simulated_stages || [] : [];
+      const tempStages = sim.temporal_impact || (impact.temporal_impact ? impact.temporal_impact.simulated_stages : []) || [];
       if (tempStages.length === 0) {
         timelineList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No temporal stage changes.</div>`;
       } else {
@@ -949,9 +1039,9 @@ document.addEventListener("DOMContentLoaded", () => {
           row.innerHTML = `
             <div>
               <b style="color:#0284c7;">${s.stage_name}</b>
-              <div style="font-size:0.68rem; color:#64748b;">${s.description} (₹${(s.cumulative_volume / 100000).toFixed(1)}L)</div>
+              <div style="font-size:0.68rem; color:#64748b;">${s.status || ''} (Risk Score: ${s.after_risk_score ?? s.stage_risk_score ?? 0})</div>
             </div>
-            <span class="badge score-low">${s.participant_count} Nodes</span>
+            <span class="badge ${s.status === 'DISRUPTED' ? 'score-high' : 'score-low'}">${s.status || 'ACTIVE'}</span>
           `;
           timelineList.appendChild(row);
         });
@@ -961,7 +1051,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 7. "Why This Matters" Forensic Explanation
     const whyMatters = document.getElementById("simWhyMattersText");
     if (whyMatters) {
-      whyMatters.textContent = impact.why_this_matters || "Mathematical topology comparison shows the removal of this entity or transaction changes the network structure and behavioural risk signature.";
+      whyMatters.textContent = sim.why_this_matters || impact.why_this_matters || "Mathematical topology comparison shows the removal of this entity or transaction changes the network structure and behavioural risk signature.";
     }
   }
 

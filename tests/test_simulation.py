@@ -135,3 +135,38 @@ def test_simulation_api_invalid_target_404():
     }
     res = client.post("/api/simulate/SCENARIO_G", json=payload)
     assert res.status_code == 404
+
+
+def test_simulation_scenario_a_targets():
+    res = client.get("/api/simulate/SCENARIO_A/targets")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["scenario_id"] == "SCENARIO_A"
+    assert len(data["accounts"]) > 0
+    assert len(data["transactions"]) > 0
+    # Verify account properties
+    for acc in data["accounts"]:
+        assert "account_id" in acc
+        assert "probable_role" in acc
+        assert "inflow_total_inr" in acc
+        assert "outflow_total_inr" in acc
+
+
+def test_simulation_api_post_simulate_transaction():
+    targets_res = client.get("/api/simulate/SCENARIO_G/targets")
+    assert targets_res.status_code == 200
+    txns = targets_res.json()["transactions"]
+    assert len(txns) > 0
+    tx_id = txns[0]["transaction_id"]
+
+    payload = {
+        "target_type": "transaction",
+        "target_id": tx_id,
+    }
+    res = client.post("/api/simulate/SCENARIO_G", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["target"]["target_id"] == tx_id
+    assert data["target"]["target_type"] == "transaction"
+    assert "comparison" in data
+

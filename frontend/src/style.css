@@ -1817,15 +1817,32 @@ body.workstation-theme {
 }
 
 .sim-dropdown {
-  background: #ffffff;
+  background-color: #ffffff;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
-  padding: 6px 10px;
+  padding: 6px 12px;
+  height: 34px;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-primary);
   font-family: inherit;
   outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  line-height: 1.4;
+  transition: border-color 0.15s ease;
+}
+
+.sim-dropdown:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.sim-dropdown option {
+  background: #ffffff;
+  color: #0f172a;
+  padding: 6px 10px;
 }
 
 .sim-run-btn {
