@@ -605,6 +605,382 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================================================================
+  // Investigation Simulator Controller (What-If Disruption Analysis)
+  // =========================================================================
+  const simulatorModal = document.getElementById("simulatorModal");
+  const openSimulatorBtn = document.getElementById("openSimulatorBtn");
+  const sidebarSimulatorBtn = document.getElementById("sidebarSimulatorBtn");
+  const graphSimulatorBtn = document.getElementById("graphSimulatorBtn");
+  const closeSimulatorModalBtn = document.getElementById("closeSimulatorModalBtn");
+  const simTypeAccountBtn = document.getElementById("simTypeAccountBtn");
+  const simTypeTxnBtn = document.getElementById("simTypeTxnBtn");
+  const simTargetLabel = document.getElementById("simTargetLabel");
+  const simTargetSelect = document.getElementById("simTargetSelect");
+  const simDirectionSelect = document.getElementById("simDirectionSelect");
+  const runSimulationBtn = document.getElementById("runSimulationBtn");
+  const simEmptyState = document.getElementById("simEmptyState");
+  const simResultsContainer = document.getElementById("simResultsContainer");
+  const simHighlightOnGraphBtn = document.getElementById("simHighlightOnGraphBtn");
+  const simResetViewBtn = document.getElementById("simResetViewBtn");
+
+  let simCurrentTargetType = "account";
+  let simCachedTargets = null;
+  let lastSimulationResult = null;
+
+  async function fetchSimulationTargets(scenarioId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/simulate/${scenarioId}/targets`);
+      if (!res.ok) return null;
+      simCachedTargets = await res.json();
+      return simCachedTargets;
+    } catch (err) {
+      console.error("[Simulator] Error fetching targets:", err);
+      return null;
+    }
+  }
+
+  function populateSimulationTargetsDropdown(selectedTargetId = null) {
+    if (!simCachedTargets || !simTargetSelect) return;
+    simTargetSelect.innerHTML = "";
+
+    if (simCurrentTargetType === "account") {
+      simTargetLabel.textContent = "SELECT TARGET ACCOUNT / ENTITY";
+      const accounts = simCachedTargets.accounts || [];
+      accounts.forEach(acc => {
+        const opt = document.createElement("option");
+        opt.value = acc.id;
+        const vol = (acc.inflow + acc.outflow).toLocaleString('en-IN');
+        opt.textContent = `${acc.id} [${acc.role}] — ₹${vol}`;
+        if (selectedTargetId && acc.id === selectedTargetId) {
+          opt.selected = true;
+        }
+        simTargetSelect.appendChild(opt);
+      });
+    } else {
+      simTargetLabel.textContent = "SELECT TARGET TRANSACTION EDGE";
+      const txns = simCachedTargets.transactions || [];
+      txns.forEach(tx => {
+        const opt = document.createElement("option");
+        opt.value = tx.transaction_id;
+        const amt = tx.amount.toLocaleString('en-IN');
+        opt.textContent = `${tx.transaction_id}: ${tx.sender} → ${tx.receiver} (₹${amt})`;
+        if (selectedTargetId && tx.transaction_id === selectedTargetId) {
+          opt.selected = true;
+        }
+        simTargetSelect.appendChild(opt);
+      });
+    }
+  }
+
+  async function openSimulatorWithTarget(targetType = "account", targetId = null) {
+    if (!currentCaseData) return;
+    simCurrentTargetType = targetType;
+    if (simTypeAccountBtn && simTypeTxnBtn) {
+      simTypeAccountBtn.classList.toggle("active", targetType === "account");
+      simTypeTxnBtn.classList.toggle("active", targetType === "transaction");
+    }
+
+    await fetchSimulationTargets(currentCaseData.scenario_id);
+    populateSimulationTargetsDropdown(targetId);
+
+    if (simulatorModal) {
+      simulatorModal.classList.remove("hidden");
+    }
+
+    if (targetId) {
+      // Auto-run simulation if an entity was explicitly clicked from drawer or graph
+      runSimulation();
+    }
+  }
+
+  if (simTypeAccountBtn) {
+    simTypeAccountBtn.addEventListener("click", () => {
+      simCurrentTargetType = "account";
+      simTypeAccountBtn.classList.add("active");
+      simTypeTxnBtn.classList.remove("active");
+      populateSimulationTargetsDropdown();
+    });
+  }
+
+  if (simTypeTxnBtn) {
+    simTypeTxnBtn.addEventListener("click", () => {
+      simCurrentTargetType = "transaction";
+      simTypeTxnBtn.classList.add("active");
+      simTypeAccountBtn.classList.remove("active");
+      populateSimulationTargetsDropdown();
+    });
+  }
+
+  if (openSimulatorBtn) openSimulatorBtn.addEventListener("click", () => openSimulatorWithTarget("account"));
+  if (sidebarSimulatorBtn) sidebarSimulatorBtn.addEventListener("click", () => openSimulatorWithTarget("account"));
+  if (graphSimulatorBtn) graphSimulatorBtn.addEventListener("click", () => {
+    const selected = graphRenderer.selectedNode ? graphRenderer.selectedNode.id : null;
+    openSimulatorWithTarget("account", selected);
+  });
+
+  if (closeSimulatorModalBtn) {
+    closeSimulatorModalBtn.addEventListener("click", () => {
+      simulatorModal.classList.add("hidden");
+    });
+  }
+
+  if (simResetViewBtn) {
+    simResetViewBtn.addEventListener("click", () => {
+      simulatorModal.classList.add("hidden");
+    });
+  }
+
+  async function runSimulation() {
+    if (!currentCaseData || !simTargetSelect.value) return;
+    
+    runSimulationBtn.disabled = true;
+    runSimulationBtn.textContent = "⚡ SIMULATING DISRUPTION...";
+
+    try {
+      const payload = {
+        target_type: simCurrentTargetType,
+        target_id: simTargetSelect.value,
+        direction: simDirectionSelect ? simDirectionSelect.value : "both"
+      };
+
+      const res = await fetch(`${API_BASE}/api/simulate/${currentCaseData.scenario_id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: res.statusText }));
+        alert(`Simulation Failed: ${JSON.stringify(errData)}`);
+        runSimulationBtn.disabled = false;
+        runSimulationBtn.textContent = "⚡ RUN SIMULATION";
+        return;
+      }
+
+      const simData = await res.json();
+      lastSimulationResult = simData;
+      renderSimulationResults(simData);
+
+      runSimulationBtn.disabled = false;
+      runSimulationBtn.textContent = "⚡ RUN SIMULATION";
+    } catch (err) {
+      console.error("[Simulator] Execution error:", err);
+      alert(`Simulation Error: ${err.message}`);
+      runSimulationBtn.disabled = false;
+      runSimulationBtn.textContent = "⚡ RUN SIMULATION";
+    }
+  }
+
+  if (runSimulationBtn) {
+    runSimulationBtn.addEventListener("click", runSimulation);
+  }
+
+  function renderSimulationResults(sim) {
+    if (simEmptyState) simEmptyState.classList.add("hidden");
+    if (simResultsContainer) simResultsContainer.classList.remove("hidden");
+
+    const before = sim.before || {};
+    const after = sim.after || {};
+    const impact = sim.impact || {};
+
+    // 1. Comparison KPIs
+    const bMetrics = before.metrics || {};
+    const aMetrics = after.metrics || {};
+
+    const beforePathsCount = (before.attack_paths || []).length;
+    const afterPathsCount = (after.attack_paths || []).length;
+    document.getElementById("simBeforePaths").textContent = beforePathsCount;
+    document.getElementById("simAfterPaths").textContent = afterPathsCount;
+    const brokenCount = (impact.affected_paths || []).length;
+    document.getElementById("simDiffPathsText").textContent = brokenCount > 0 ? `-${brokenCount} broken` : "0 broken";
+
+    document.getElementById("simBeforeNodes").textContent = bMetrics.total_accounts || 0;
+    document.getElementById("simAfterNodes").textContent = aMetrics.total_accounts || 0;
+    const diffNodes = (bMetrics.total_accounts || 0) - (aMetrics.total_accounts || 0);
+    document.getElementById("simDiffNodesText").textContent = diffNodes > 0 ? `-${diffNodes} nodes` : "0 diff";
+
+    const bVol = (bMetrics.total_volume_inr || 0);
+    const aVol = (aMetrics.total_volume_inr || 0);
+    document.getElementById("simBeforeVol").textContent = `₹${(bVol / 100000).toFixed(1)}L`;
+    document.getElementById("simAfterVol").textContent = `₹${(aVol / 100000).toFixed(1)}L`;
+    const volDiff = bVol - aVol;
+    document.getElementById("simDiffVolText").textContent = volDiff > 0 ? `-₹${(volDiff / 100000).toFixed(1)}L` : "₹0";
+
+    const bHops = bMetrics.max_hop_depth || 0;
+    const aHops = aMetrics.max_hop_depth || 0;
+    document.getElementById("simBeforeHops").textContent = bHops;
+    document.getElementById("simAfterHops").textContent = aHops;
+    document.getElementById("simDiffHopsText").textContent = aHops < bHops ? `Reduced by ${bHops - aHops}` : "Unchanged";
+
+    const bRet = Math.round((bMetrics.flow_retention_ratio || 0) * 100);
+    const aRet = Math.round((aMetrics.flow_retention_ratio || 0) * 100);
+    document.getElementById("simBeforeRet").textContent = `${bRet}%`;
+    document.getElementById("simAfterRet").textContent = `${aRet}%`;
+    document.getElementById("simDiffRetText").textContent = `${aRet - bRet}% delta`;
+
+    const bPrio = Math.round(before.priority || 0);
+    const aPrio = Math.round(after.priority || 0);
+    document.getElementById("simBeforePriority").textContent = bPrio;
+    document.getElementById("simAfterPriority").textContent = aPrio;
+    const prioDiff = aPrio - bPrio;
+    document.getElementById("simDiffPriorityText").textContent = prioDiff < 0 ? `${prioDiff} pts` : `+${prioDiff} pts`;
+
+    // 2. Money Trail DNA Shift
+    const bDna = before.dna || {};
+    const aDna = after.dna || {};
+    document.getElementById("simOriginalDnaSig").textContent = bDna.signature || "N/A";
+    document.getElementById("simSimulatedDnaSig").textContent = aDna.signature || "N/A";
+
+    const genesCompContainer = document.getElementById("simDnaGenesComparison");
+    if (genesCompContainer) {
+      genesCompContainer.innerHTML = "";
+      const dnaDiffs = impact.dna_comparison || {};
+      const geneKeys = ["typology", "velocity", "dispersion", "retention", "channel", "topology"];
+
+      geneKeys.forEach(gk => {
+        const geneInfo = dnaDiffs[gk] || { before: "N/A", after: "N/A", changed: false };
+        const card = document.createElement("div");
+        card.className = `sim-gene-card ${geneInfo.changed ? "mutated" : ""}`;
+        card.innerHTML = `
+          <div class="sim-gene-name">${gk}</div>
+          <div class="sim-gene-diff">
+            <span style="color:#64748b;">${geneInfo.before}</span>
+            <span style="color:#0284c7;">→</span>
+            <b style="color:${geneInfo.changed ? '#b45309' : '#0f172a'};">${geneInfo.after}</b>
+          </div>
+        `;
+        genesCompContainer.appendChild(card);
+      });
+    }
+
+    // 3. Attack Paths Impact List
+    const pathsList = document.getElementById("simAttackPathsList");
+    const brokenBadge = document.getElementById("simBrokenPathsCountBadge");
+    if (pathsList) {
+      pathsList.innerHTML = "";
+      const pathComparisons = impact.affected_paths || [];
+      if (brokenBadge) brokenBadge.textContent = `${pathComparisons.length} Broken`;
+
+      if (pathComparisons.length === 0) {
+        pathsList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No attack paths disrupted by this removal.</div>`;
+      } else {
+        pathComparisons.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row broken";
+          row.innerHTML = `
+            <div>
+              <b style="color:#b91c1c;">${p.path_id}</b>: ${(p.nodes || []).join(" ➔ ")}
+              <div style="font-size:0.68rem; color:#7f1d1d; margin-top:2px;">${p.reason}</div>
+            </div>
+            <span class="badge score-high">BROKEN</span>
+          `;
+          pathsList.appendChild(row);
+        });
+      }
+    }
+
+    // 4. Pattern Disruption List
+    const patternsList = document.getElementById("simPatternsImpactList");
+    if (patternsList) {
+      patternsList.innerHTML = "";
+      const patImpact = impact.affected_patterns || {};
+      const removedPats = patImpact.removed || [];
+      const persistedPats = patImpact.persisted || [];
+      const newPats = patImpact.newly_detected || [];
+
+      if (removedPats.length === 0 && persistedPats.length === 0 && newPats.length === 0) {
+        patternsList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No pattern changes detected.</div>`;
+      } else {
+        removedPats.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row removed";
+          row.innerHTML = `<span><b>${p.pattern_type}</b> (${p.nodes.length} nodes)</span> <span class="badge score-high">REMOVED</span>`;
+          patternsList.appendChild(row);
+        });
+        persistedPats.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row persisted";
+          row.innerHTML = `<span><b>${p.pattern_type}</b></span> <span class="badge score-low">PERSISTED</span>`;
+          patternsList.appendChild(row);
+        });
+        newPats.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row new";
+          row.innerHTML = `<span><b>${p.pattern_type}</b></span> <span class="badge badge-accent">NEW DETECTED</span>`;
+          patternsList.appendChild(row);
+        });
+      }
+    }
+
+    // 5. Role Shifts List
+    const roleList = document.getElementById("simRoleShiftsList");
+    if (roleList) {
+      roleList.innerHTML = "";
+      const roleShifts = impact.role_shifts || [];
+      if (roleShifts.length === 0) {
+        roleList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No downstream role re-assignments occurred.</div>`;
+      } else {
+        roleShifts.forEach(r => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row";
+          row.innerHTML = `
+            <div>
+              <b>${r.account_id}</b>
+              <div style="font-size:0.68rem; color:#64748b;">${r.original_role} (${Math.round(r.original_confidence*100)}%) ➔ ${r.simulated_role} (${Math.round(r.simulated_confidence*100)}%)</div>
+            </div>
+            <span class="badge score-low">Role Shift</span>
+          `;
+          roleList.appendChild(row);
+        });
+      }
+    }
+
+    // 6. Temporal Storyline List
+    const timelineList = document.getElementById("simTemporalStorylineList");
+    if (timelineList) {
+      timelineList.innerHTML = "";
+      const tempStages = impact.temporal_impact ? impact.temporal_impact.simulated_stages || [] : [];
+      if (tempStages.length === 0) {
+        timelineList.innerHTML = `<div style="font-size:0.75rem; color:#64748b; padding:4px;">No temporal stage changes.</div>`;
+      } else {
+        tempStages.forEach(s => {
+          const row = document.createElement("div");
+          row.className = "sim-item-row";
+          row.innerHTML = `
+            <div>
+              <b style="color:#0284c7;">${s.stage_name}</b>
+              <div style="font-size:0.68rem; color:#64748b;">${s.description} (₹${(s.cumulative_volume / 100000).toFixed(1)}L)</div>
+            </div>
+            <span class="badge score-low">${s.participant_count} Nodes</span>
+          `;
+          timelineList.appendChild(row);
+        });
+      }
+    }
+
+    // 7. "Why This Matters" Forensic Explanation
+    const whyMatters = document.getElementById("simWhyMattersText");
+    if (whyMatters) {
+      whyMatters.textContent = impact.why_this_matters || "Mathematical topology comparison shows the removal of this entity or transaction changes the network structure and behavioural risk signature.";
+    }
+  }
+
+  // Highlight Simulation on Cytoscape / Canvas Graph
+  if (simHighlightOnGraphBtn) {
+    simHighlightOnGraphBtn.addEventListener("click", () => {
+      if (!lastSimulationResult) return;
+      simulatorModal.classList.add("hidden");
+      graphRenderer.setSimulationMode(lastSimulationResult);
+      activateTab("tab-overview");
+    });
+  }
+
+  // Tab Manager Action Listeners for Simulator
+  document.querySelectorAll("[data-action='open-simulator']").forEach(btn => {
+    btn.addEventListener("click", () => openSimulatorWithTarget("account"));
+  });
+
+  // =========================================================================
   // Core Workstation Logic & Scenario Loading
   // =========================================================================
 
@@ -1108,7 +1484,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const dwell = Math.round(roleData.avg_dwell_time_minutes || 0);
 
         body.innerHTML = `
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
+          <div style="margin-bottom:12px;">
+            <button id="drawerSimulateWhatIfBtn" class="btn btn-primary" style="width:100%; font-weight:700; font-size:0.8rem; padding:8px 12px; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+              🔬 SIMULATE WHAT-IF REMOVAL
+            </button>
+          </div>
+
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span style="font-size:0.75rem; color:#64748b; font-weight:700;">INFERRED ROLE</span>
               <span class="badge score-high">${role} (${conf}%)</span>
@@ -1121,7 +1503,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
 
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:12px;">
             <div style="font-size:0.75rem; font-weight:700; color:#64748b; margin-bottom:6px;">2-HOP CONNECTED NEIGHBORS (${nodesToHighlight.length})</div>
             <div style="font-family:'JetBrains Mono', monospace; font-size:0.72rem; color:#0284c7; display:flex; flex-wrap:wrap; gap:4px;">
               ${nodesToHighlight.map(n => `<span style="background:#ffffff; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px;">${n}</span>`).join("")}
@@ -1135,6 +1517,15 @@ document.addEventListener("DOMContentLoaded", () => {
             </ul>
           </div>
         `;
+
+        const drawerSimBtn = document.getElementById("drawerSimulateWhatIfBtn");
+        if (drawerSimBtn) {
+          drawerSimBtn.addEventListener("click", () => {
+            drawer.classList.add("hidden");
+            openSimulatorWithTarget("account", accountId);
+          });
+        }
+
         drawer.classList.remove("hidden");
       }
     } catch (err) {

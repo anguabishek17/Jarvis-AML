@@ -30,6 +30,7 @@ from backend.data.scenarios import get_all_scenarios
 from backend.ingestion.validator import TransactionValidator, ValidationReport
 from backend.ingestion.sample_generator import get_sample_csv_text
 from backend.reporting.pdf_report import ForensicPDFReportGenerator
+from backend.analytics.simulation_engine import InvestigationSimulatorEngine
 
 
 app = FastAPI(
@@ -37,6 +38,7 @@ app = FastAPI(
     description="AI-Powered Anti-Money-Laundering Investigation & Money Trail Intelligence System",
     version="1.0.0",
 )
+
 
 # Enable CORS for local dev and frontend workstation
 app.add_middleware(
@@ -141,15 +143,31 @@ class InvestigationPipeline:
 pipeline = InvestigationPipeline()
 validator = TransactionValidator()
 pdf_generator = ForensicPDFReportGenerator()
+simulator_engine = InvestigationSimulatorEngine(pipeline)
 SCENARIOS_CACHE = get_all_scenarios()
 CUSTOM_CASES_REGISTRY: Dict[str, Dict[str, Any]] = {}
 CUSTOM_GRAPHS_REGISTRY: Dict[str, FinancialMultiGraph] = {}
+
+
+def get_case_graph(scenario_id: str) -> FinancialMultiGraph:
+    sc_id_upper = scenario_id.upper()
+    if scenario_id in CUSTOM_GRAPHS_REGISTRY:
+        return CUSTOM_GRAPHS_REGISTRY[scenario_id]
+    if sc_id_upper in CUSTOM_GRAPHS_REGISTRY:
+        return CUSTOM_GRAPHS_REGISTRY[sc_id_upper]
+    if sc_id_upper in SCENARIOS_CACHE:
+        meta, accounts, transactions = SCENARIOS_CACHE[sc_id_upper]
+        graph = FinancialMultiGraph()
+        graph.load_transactions(transactions, accounts)
+        return graph
+    raise HTTPException(status_code=404, detail=f"Graph for scenario '{scenario_id}' not found.")
 
 
 def generate_custom_case_id() -> str:
     date_str = datetime.utcnow().strftime("%Y%m%d")
     count = len(CUSTOM_CASES_REGISTRY) + 1
     return f"CUSTOM-{date_str}-{count:03d}"
+
 
 
 @app.get("/api/health")
@@ -273,6 +291,92 @@ def trace_account_flow(scenario_id: str, account_id: str, depth: int = Query(2, 
         "downstream": downstream,
         "neighborhood_2hop": neighborhood,
     }
+
+
+@app.get("/api/simulate/{scenario_id}/targets")
+def get_simulation_targets(scenario_id: str):
+    """List available account entities and transaction edges available for removal simulation."""
+    case_data = get_case_investigation(scenario_id)
+    graph = get_case_graph(scenario_id)
+    roles = case_data.get("roles", {})
+
+    accounts_list = []
+    for node in graph.get_accounts():
+        r = roles.get(node, {})
+        role_str = r.get("probable_role", "UNKNOWN") if isinstance(r, dict) else getattr(r, "probable_role", "UNKNOWN")
+        conf = r.get("confidence", 0.0) if isinstance(r, dict) else getattr(r, "confidence", 0.0)
+        metrics = graph.get_account_metrics(node)
+        accounts_list.append({
+            "account_id": node,
+            "probable_role": role_str,
+            "confidence": conf,
+            "inflow_total_inr": metrics["inflow_total"],
+            "outflow_total_inr": metrics["outflow_total"],
+            "forwarding_ratio": metrics["forwarding_ratio"],
+        })
+
+    # Sort accounts by non-legitimate role first, then by inflow
+    accounts_list.sort(key=lambda x: (x["probable_role"] == "LEGITIMATE", -x["inflow_total_inr"]))
+
+    txs_list = []
+    for tx in graph.get_all_transactions():
+        txs_list.append({
+            "transaction_id": tx.transaction_id,
+            "sender_account": tx.sender_account,
+            "receiver_account": tx.receiver_account,
+            "amount": tx.amount,
+            "timestamp": tx.timestamp.isoformat() if hasattr(tx.timestamp, "isoformat") else str(tx.timestamp),
+            "channel": str(tx.channel),
+        })
+
+    txs_list.sort(key=lambda x: -x["amount"])
+
+    return {
+        "scenario_id": scenario_id,
+        "accounts": accounts_list,
+        "transactions": txs_list,
+    }
+
+
+@app.api_route("/api/simulate/{scenario_id}", methods=["POST", "OPTIONS"])
+@app.api_route("/api/simulate/{scenario_id}/", methods=["POST", "OPTIONS"])
+async def run_investigation_simulation(scenario_id: str, request: Request):
+    """
+    Simulates the hypothetical removal of an account or transaction edge,
+    recalculates all AML engines, and returns a deterministic before-vs-after comparison.
+    """
+    if request.method == "OPTIONS":
+        return Response(status_code=200)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    target_type = body.get("target_type", "account")
+    target_id = body.get("target_id", "")
+
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Missing required field 'target_id'.")
+
+    case_data = get_case_investigation(scenario_id)
+    graph = get_case_graph(scenario_id)
+
+    try:
+        sim_result = simulator_engine.simulate(
+            original_graph=graph,
+            original_analysis=case_data,
+            target_type=target_type,
+            target_id=target_id,
+            scenario_id=scenario_id,
+        )
+        return sim_result
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        print(f"[Simulator] Error executing simulation for {scenario_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
 
 
 @app.get("/api/dna/{scenario_id}")

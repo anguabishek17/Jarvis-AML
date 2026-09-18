@@ -349,3 +349,34 @@ class FinancialMultiGraph:
             "node_count": len(nodes_list),
             "edge_count": len(edges_list),
         }
+
+    def clone_and_remove(
+        self,
+        account_id: Optional[str] = None,
+        transaction_id: Optional[str] = None
+    ) -> 'FinancialMultiGraph':
+        """
+        Create a clean copy of the financial graph with an account (and its incident edges)
+        or a specific transaction edge removed for what-if simulation purposes.
+        """
+        sim_graph = FinancialMultiGraph()
+        for acc_id, acc in self.accounts.items():
+            if account_id and acc_id == account_id:
+                continue
+            sim_graph.add_account(Account(
+                account_id=acc.account_id,
+                account_holder_name=acc.account_holder_name,
+                account_type=acc.account_type,
+                bank_name=acc.bank_name,
+                ifsc_code=acc.ifsc_code,
+                kyc_status=acc.kyc_status,
+                created_date=acc.created_date,
+            ))
+        for tx in self.transactions.values():
+            if transaction_id and tx.transaction_id == transaction_id:
+                continue
+            if account_id and (tx.sender_account == account_id or tx.receiver_account == account_id):
+                continue
+            sim_graph.add_transaction(tx)
+        return sim_graph
+

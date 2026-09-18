@@ -283,6 +283,24 @@ class GraphCanvasRenderer {
     return true;
   }
 
+  setSimulationMode(simData) {
+    if (!simData) {
+      this.simulationActive = false;
+      this.simRemovedNodeId = null;
+      this.simRemovedTxnId = null;
+      this.simBrokenEdges = new Set();
+      this.simAffectedNodeIds = new Set();
+      return;
+    }
+
+    this.simulationActive = true;
+    this.simRemovedNodeId = simData.target_type === "account" ? simData.target_id : null;
+    this.simRemovedTxnId = simData.target_type === "transaction" ? simData.target_id : null;
+    
+    this.simAffectedNodeIds = new Set(simData.impact ? simData.impact.affected_entities || [] : []);
+    this.simBrokenEdges = new Set(simData.impact ? (simData.impact.removed_edges || []).map(e => `${e.sender}->${e.receiver}`) : []);
+  }
+
   animate() {
     this.updatePhysics();
     this.render();
@@ -300,18 +318,38 @@ class GraphCanvasRenderer {
       const isSrcVis = this.isNodeVisible(edge.sourceNode);
       const isTgtVis = this.isNodeVisible(edge.targetNode);
       const isPathEdge = this.activePathNodeIds.has(edge.sourceNode.id) && this.activePathNodeIds.has(edge.targetNode.id);
+      
+      const edgeKey = `${edge.sourceNode.id}->${edge.targetNode.id}`;
+      const isSimBroken = this.simulationActive && (
+        this.simBrokenEdges.has(edgeKey) || 
+        edge.sourceNode.id === this.simRemovedNodeId || 
+        edge.targetNode.id === this.simRemovedNodeId ||
+        edge.transaction_id === this.simRemovedTxnId
+      );
 
-      const alpha = (!isSrcVis || !isTgtVis) ? 0.08 : (isPathEdge ? 0.95 : 0.45);
-      const strokeColor = isPathEdge ? "#00f0ff" : "#475569";
-      const lineWidth = isPathEdge ? 2.5 : 1.2;
+      let alpha = (!isSrcVis || !isTgtVis) ? 0.08 : (isPathEdge ? 0.95 : 0.45);
+      let strokeColor = isPathEdge ? "#00f0ff" : "#475569";
+      let lineWidth = isPathEdge ? 2.5 : 1.2;
 
-      this.drawDirectedEdge(edge.sourceNode, edge.targetNode, edge, strokeColor, alpha, lineWidth);
+      if (isSimBroken) {
+        strokeColor = "#ef4444";
+        lineWidth = 2.0;
+        alpha = 0.8;
+      }
+
+      this.drawDirectedEdge(edge.sourceNode, edge.targetNode, edge, strokeColor, alpha, lineWidth, isSimBroken);
     }
 
     // Draw Flow Particles along path edges
     for (const p of this.particles) {
       if (!this.isNodeVisible(p.edge.sourceNode) || !this.isNodeVisible(p.edge.targetNode)) continue;
       const isPath = this.activePathNodeIds.has(p.edge.sourceNode.id) && this.activePathNodeIds.has(p.edge.targetNode.id);
+      
+      const edgeKey = `${p.edge.sourceNode.id}->${p.edge.targetNode.id}`;
+      if (this.simulationActive && (this.simBrokenEdges.has(edgeKey) || p.edge.sourceNode.id === this.simRemovedNodeId || p.edge.targetNode.id === this.simRemovedNodeId)) {
+        continue; // Do not flow particles through simulated broken edges
+      }
+
       p.progress = (p.progress + p.speed) % 1.0;
 
       const px = p.edge.sourceNode.x + (p.edge.targetNode.x - p.edge.sourceNode.x) * p.progress;
@@ -329,39 +367,65 @@ class GraphCanvasRenderer {
       const isSelected = this.selectedNode && this.selectedNode.id === node.id;
       const isHovered = this.hoveredNode && this.hoveredNode.id === node.id;
       const isPathNode = this.activePathNodeIds.has(node.id);
+      const isSimRemoved = this.simulationActive && (node.id === this.simRemovedNodeId);
+      const isSimAffected = this.simulationActive && this.simAffectedNodeIds.has(node.id);
 
-      const color = this.getNodeColor(node);
-      const alpha = isVis ? 1.0 : 0.15;
+      let color = this.getNodeColor(node);
+      let alpha = isVis ? 1.0 : 0.15;
 
-      // Glow effect for selected or path node
-      if (isSelected || isPathNode) {
+      if (isSimRemoved) {
+        color = "#ef4444";
+        alpha = 0.4;
+      } else if (isSimAffected) {
+        color = "#f59e0b";
+      }
+
+      // Glow effect for selected or path node or simulated removed
+      if (isSelected || isPathNode || isSimRemoved) {
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, node.radius + 8, 0, 2 * Math.PI);
-        this.ctx.fillStyle = isPathNode ? "rgba(0, 240, 255, 0.25)" : "rgba(59, 130, 246, 0.3)";
+        this.ctx.fillStyle = isSimRemoved ? "rgba(239, 68, 68, 0.3)" : (isPathNode ? "rgba(0, 240, 255, 0.25)" : "rgba(59, 130, 246, 0.3)");
         this.ctx.fill();
       }
 
       // Outer border
       this.ctx.beginPath();
       this.ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
-      this.ctx.fillStyle = isVis ? "#162032" : "#0d131f";
+      this.ctx.fillStyle = isVis ? (isSimRemoved ? "#3b1219" : "#162032") : "#0d131f";
       this.ctx.fill();
       this.ctx.strokeStyle = color;
       this.ctx.globalAlpha = alpha;
-      this.ctx.lineWidth = isSelected ? 3.5 : (isHovered ? 2.5 : 2.0);
+      this.ctx.lineWidth = isSimRemoved ? 2.5 : (isSelected ? 3.5 : (isHovered ? 2.5 : 2.0));
+      
+      if (isSimRemoved) {
+        this.ctx.setLineDash([4, 4]);
+      } else {
+        this.ctx.setLineDash([]);
+      }
       this.ctx.stroke();
+      this.ctx.setLineDash([]);
 
-      // Node Inner Dot
+      // Node Inner Dot or Strike-through
       this.ctx.beginPath();
       this.ctx.arc(node.x, node.y, node.radius * 0.45, 0, 2 * Math.PI);
       this.ctx.fillStyle = color;
       this.ctx.fill();
 
+      if (isSimRemoved) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(node.x - node.radius * 0.5, node.y - node.radius * 0.5);
+        this.ctx.lineTo(node.x + node.radius * 0.5, node.y + node.radius * 0.5);
+        this.ctx.strokeStyle = "#ffffff";
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+      }
+
       // Label Text
       this.ctx.font = isSelected ? "bold 11px 'JetBrains Mono', monospace" : "10px 'JetBrains Mono', monospace";
-      this.ctx.fillStyle = isVis ? "#f1f5f9" : "#475569";
+      this.ctx.fillStyle = isSimRemoved ? "#ef4444" : (isVis ? "#f1f5f9" : "#475569");
       this.ctx.textAlign = "center";
-      this.ctx.fillText(node.id.replace("ACC_", ""), node.x, node.y + node.radius + 14);
+      const labelText = isSimRemoved ? `[REMOVED] ${node.id.replace("ACC_", "")}` : node.id.replace("ACC_", "");
+      this.ctx.fillText(labelText, node.x, node.y + node.radius + 14);
       this.ctx.globalAlpha = 1.0;
     }
 

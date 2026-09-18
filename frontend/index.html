@@ -60,6 +60,10 @@
           <span class="nav-icon">🛤</span>
           <span class="nav-label">Attack Paths</span>
         </button>
+        <button class="nav-item highlight-simulator" id="sidebarSimulatorBtn" data-action="open-simulator">
+          <span class="nav-icon">🔬</span>
+          <span class="nav-label">Simulator</span>
+        </button>
         <button class="nav-item" data-tab="tab-storyline">
           <span class="nav-icon">⏱</span>
           <span class="nav-label">Storyline / Timeline</span>
@@ -145,6 +149,7 @@
 
           <!-- Actions -->
           <div class="header-actions">
+            <button id="openSimulatorBtn" class="btn btn-simulator-action" title="Run What-If Network Simulation">🔬 SIMULATOR</button>
             <button id="openCustomAnalysisBtn" class="btn btn-custom-action" title="Analyze custom transaction datasets">⚡ CUSTOM ANALYSIS</button>
             <button id="exportPdfBtn" class="btn btn-primary" title="Export dynamic Forensic Investigation PDF Report">📄 Export PDF</button>
             <button id="exportReportBtn" class="btn btn-secondary" title="Export forensic JSON dossier">💾 Export JSON</button>
@@ -301,6 +306,7 @@
                     </div>
 
                     <div class="graph-quick-actions">
+                      <button id="graphSimulatorBtn" class="icon-btn highlight-btn" title="Open Investigation Simulator">🔬 Simulator</button>
                       <button id="resetZoomBtn" class="icon-btn" title="Reset Viewport">⟲ Reset</button>
                       <button id="togglePhysicsBtn" class="icon-btn" title="Toggle Graph Motion">⏸ Freeze</button>
                     </div>
@@ -667,6 +673,241 @@
       </div>
       <div class="modal-body" id="modalGeneContent">
         <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 10. INVESTIGATION SIMULATOR MODAL ("WHAT-IF" REMOVAL ANALYSIS)         -->
+  <!-- ==================================================================== -->
+  <div id="simulatorModal" class="modal-overlay hidden">
+    <div class="modal-card modal-extra-large">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="color:#0284c7; font-size:1.3rem;">🔬</span>
+          <div>
+            <h3 style="margin:0; font-size:1.15rem; font-weight:700;">INVESTIGATION SIMULATOR — WHAT-IF NETWORK ANALYSIS</h3>
+            <span style="font-size:0.75rem; color:#64748b;">Explore deterministic topological and behavioural changes if an entity or transaction is removed</span>
+          </div>
+        </div>
+        <button id="closeSimulatorModalBtn" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body simulator-modal-body">
+        
+        <!-- Controls & Target Selector -->
+        <div class="simulator-controls-bar">
+          <div class="sim-control-group">
+            <label class="sim-label">TARGET TYPE</label>
+            <div class="sim-radio-toggle">
+              <button id="simTypeAccountBtn" class="sim-toggle-btn active" data-type="account">Account / Entity</button>
+              <button id="simTypeTxnBtn" class="sim-toggle-btn" data-type="transaction">Transaction Edge</button>
+            </div>
+          </div>
+
+          <div class="sim-control-group sim-target-select-group">
+            <label id="simTargetLabel" class="sim-label">SELECT TARGET ACCOUNT</label>
+            <select id="simTargetSelect" class="sim-dropdown">
+              <!-- Populated dynamically via /api/simulate/{scenario_id}/targets -->
+            </select>
+          </div>
+
+          <div class="sim-control-group">
+            <label class="sim-label">SIMULATION DIRECTION</label>
+            <select id="simDirectionSelect" class="sim-dropdown">
+              <option value="both" selected>Both (Downstream & Upstream)</option>
+              <option value="downstream">Downstream Sink Impact Only</option>
+              <option value="upstream">Upstream Originator Impact Only</option>
+            </select>
+          </div>
+
+          <div class="sim-control-group sim-action-group">
+            <button id="runSimulationBtn" class="btn btn-primary sim-run-btn">
+              ⚡ RUN SIMULATION
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulation Progress / Initial Hint -->
+        <div id="simEmptyState" class="sim-empty-state">
+          <div style="font-size:2.5rem; margin-bottom:8px;">🔬</div>
+          <h4 style="font-size:1rem; color:#0f172a; margin-bottom:4px;">Ready to Simulate Network Disruption</h4>
+          <p style="font-size:0.8rem; color:#64748b; max-width:540px; margin:0 auto;">
+            Select an account or transaction above and click <b>RUN SIMULATION</b> to evaluate real-time impact on attack paths, AML pattern clusters, Money Trail DNA™, role hypotheses, and case priority.
+          </p>
+        </div>
+
+        <!-- Simulation Results Section (Hidden until run) -->
+        <div id="simResultsContainer" class="sim-results-container hidden">
+          
+          <!-- Notice & Forensic Disclaimer Banner -->
+          <div class="sim-disclaimer-banner">
+            <span class="badge score-low" style="margin-right:6px;">HYPOTHETICAL WHAT-IF</span>
+            <span style="font-size:0.75rem; color:#334155;">
+              Analytical simulation calculates mathematical graph and behavioural differences upon hypothetical node/edge removal. It does not assert legal guilt or innocence.
+            </span>
+          </div>
+
+          <!-- 1. BEFORE vs AFTER KPI COMPARISON CARDS (Grid) -->
+          <div class="sim-comparison-grid">
+            
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">ATTACK PATHS</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforePaths" class="sim-val-before">4</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterPaths" class="sim-val-after">1</span>
+              </div>
+              <div id="simDiffPathsText" class="sim-metric-change text-red">-3 paths broken</div>
+            </div>
+
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">SUSPICIOUS NODES</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforeNodes" class="sim-val-before">12</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterNodes" class="sim-val-after">7</span>
+              </div>
+              <div id="simDiffNodesText" class="sim-metric-change text-amber">-5 nodes</div>
+            </div>
+
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">TRANSACTION VOLUME</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforeVol" class="sim-val-before">₹4.2M</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterVol" class="sim-val-after">₹2.1M</span>
+              </div>
+              <div id="simDiffVolText" class="sim-metric-change text-amber">-₹2.1M</div>
+            </div>
+
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">MAX HOP DEPTH</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforeHops" class="sim-val-before">7</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterHops" class="sim-val-after">3</span>
+              </div>
+              <div id="simDiffHopsText" class="sim-metric-change text-blue">Hops reduced</div>
+            </div>
+
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">FLOW RETENTION</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforeRet" class="sim-val-before">82%</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterRet" class="sim-val-after">41%</span>
+              </div>
+              <div id="simDiffRetText" class="sim-metric-change text-green">-41% drop</div>
+            </div>
+
+            <div class="sim-metric-card">
+              <div class="sim-metric-header">CASE PRIORITY</div>
+              <div class="sim-metric-diff">
+                <span id="simBeforePriority" class="sim-val-before">92</span>
+                <span class="sim-arrow">→</span>
+                <span id="simAfterPriority" class="sim-val-after">61</span>
+              </div>
+              <div id="simDiffPriorityText" class="sim-metric-change text-green">-31 pts</div>
+            </div>
+
+          </div>
+
+          <!-- 2. MONEY TRAIL DNA™ IMPACT COMPARISON -->
+          <div class="sim-dna-panel">
+            <div class="sim-section-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:#0284c7;">🧬</span>
+                <h4 style="margin:0; font-size:0.9rem; font-weight:700;">MONEY TRAIL DNA™ SIGNATURE SHIFT</h4>
+              </div>
+              <span class="badge badge-accent">6-Gene Fingerprint Delta</span>
+            </div>
+
+            <div class="sim-dna-signatures-row">
+              <div class="sim-dna-box">
+                <span class="sim-dna-label">ORIGINAL DNA SIGNATURE</span>
+                <div id="simOriginalDnaSig" class="sim-dna-code">DNA-ORIGINAL</div>
+              </div>
+              <div class="sim-dna-arrow-center">➔</div>
+              <div class="sim-dna-box simulated">
+                <span class="sim-dna-label">SIMULATED DNA SIGNATURE</span>
+                <div id="simSimulatedDnaSig" class="sim-dna-code">DNA-SIMULATED</div>
+              </div>
+            </div>
+
+            <!-- Gene-by-Gene Mutation Comparison Grid -->
+            <div id="simDnaGenesComparison" class="sim-dna-genes-comparison">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- 3. DETAILED IMPACT TABULATION (Two Columns: Paths & Patterns / Roles & Structure) -->
+          <div class="sim-details-grid">
+            
+            <!-- Left: Attack Paths & Pattern Disruption -->
+            <div class="sim-subpanel">
+              <div class="sim-subpanel-header">
+                <span style="font-weight:700; font-size:0.85rem; color:#0f172a;">🛤 ATTACK PATH DISRUPTIONS</span>
+                <span id="simBrokenPathsCountBadge" class="badge score-high">0 Broken</span>
+              </div>
+              <div id="simAttackPathsList" class="sim-list-container">
+                <!-- Rendered dynamically -->
+              </div>
+
+              <div class="sim-subpanel-header" style="margin-top:14px;">
+                <span style="font-weight:700; font-size:0.85rem; color:#0f172a;">🔍 AML PATTERN CLUSTER IMPACT</span>
+                <span id="simPatternImpactBadge" class="badge badge-accent">Typology State</span>
+              </div>
+              <div id="simPatternsImpactList" class="sim-list-container">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- Right: Role Shifts & Network Topology Impact -->
+            <div class="sim-subpanel">
+              <div class="sim-subpanel-header">
+                <span style="font-weight:700; font-size:0.85rem; color:#0f172a;">👥 CONNECTED ROLE RE-INFERENCE</span>
+                <span id="simRoleShiftsBadge" class="badge score-low">Role State</span>
+              </div>
+              <div id="simRoleShiftsList" class="sim-list-container">
+                <!-- Rendered dynamically -->
+              </div>
+
+              <div class="sim-subpanel-header" style="margin-top:14px;">
+                <span style="font-weight:700; font-size:0.85rem; color:#0f172a;">⏱ TEMPORAL STORYLINE STAGES</span>
+                <span id="simTimelineImpactBadge" class="badge score-low">Stage Transitions</span>
+              </div>
+              <div id="simTemporalStorylineList" class="sim-list-container">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 4. "WHY THIS MATTERS" FORENSIC EXPLANATION & GRAPH ACTION -->
+          <div class="sim-forensic-summary-panel">
+            <div class="sim-why-matters-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:#0284c7; font-size:1.1rem;">💡</span>
+                <h4 style="margin:0; font-size:0.9rem; font-weight:700; color:#0f172a;">WHY THIS MATTERS — FORENSIC INTERPRETATION</h4>
+              </div>
+            </div>
+            <p id="simWhyMattersText" class="sim-why-matters-content">
+              <!-- Rendered dynamically -->
+            </p>
+
+            <div class="sim-modal-actions-footer">
+              <button id="simHighlightOnGraphBtn" class="btn btn-secondary btn-sm">
+                🕸 View Simulated Disruption on Graph
+              </button>
+              <button id="simResetViewBtn" class="btn btn-primary btn-sm">
+                ✓ Done / Close Simulator
+              </button>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </div>
