@@ -223,3 +223,24 @@ def test_pdf_large_dataset_register_bounds():
     assert isinstance(pdf_bytes, bytes)
     assert len(pdf_bytes) > 1000
     assert pdf_bytes.startswith(b"%PDF-")
+
+
+def test_pdf_unicode_glyphs_and_zero_black_boxes():
+    """Verify all critical Unicode characters (₹, →, ✓, •, —, ™) render correctly with zero black boxes (■/□)."""
+    response = client.get("/api/cases/SCENARIO_G/export/pdf")
+    assert response.status_code == 200
+    text = _get_pdf_text(response.content)
+
+    # Must contain proper Unicode glyphs
+    assert "₹" in text, "Rupee symbol ₹ must render properly in PDF"
+    assert "→" in text, "Arrow symbol → must render properly in PDF"
+    assert "✓" in text, "Check mark ✓ must render properly in PDF"
+    assert "•" in text, "Bullet point • must render properly in PDF"
+    assert "—" in text or "-" in text, "Dash must render properly in PDF"
+    assert "™" in text or "Money Trail DNA" in text, "DNA Trademark or title must render properly"
+
+    # Must have ZERO missing glyph black squares or replacement boxes
+    assert "■" not in text, "Black box ■ must not appear in PDF output"
+    assert "□" not in text, "Empty box □ must not appear in PDF output"
+    assert "\ufffd" not in text, "Unicode replacement char must not appear in PDF output"
+

@@ -23,6 +23,61 @@ from reportlab.platypus import (
     PageBreak,
 )
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+
+def _register_unicode_fonts():
+    """Locate and register Unicode-capable TrueType fonts (DejaVu Sans / DejaVu Sans Mono)."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    bundled_fonts_dir = os.path.join(current_dir, "fonts")
+
+    # Look in bundled directory first, then matplotlib / system fallbacks
+    search_dirs = [
+        bundled_fonts_dir,
+    ]
+    try:
+        import matplotlib
+        search_dirs.append(os.path.join(os.path.dirname(matplotlib.__file__), "mpl-data", "fonts", "ttf"))
+    except Exception:
+        pass
+
+    registered = pdfmetrics.getRegisteredFontNames()
+    if "DejaVuSans" in registered and "DejaVuSans-Bold" in registered:
+        return "DejaVuSans", "DejaVuSans-Bold", "DejaVuSansMono", "DejaVuSansMono-Bold"
+
+    def find_file(filename):
+        for d in search_dirs:
+            p = os.path.join(d, filename)
+            if os.path.exists(p):
+                return p
+        return None
+
+    regular_path = find_file("DejaVuSans.ttf")
+    bold_path = find_file("DejaVuSans-Bold.ttf")
+    oblique_path = find_file("DejaVuSans-Oblique.ttf")
+    bold_oblique_path = find_file("DejaVuSans-BoldOblique.ttf")
+    mono_path = find_file("DejaVuSansMono.ttf")
+    mono_bold_path = find_file("DejaVuSansMono-Bold.ttf")
+
+    if regular_path and bold_path:
+        pdfmetrics.registerFont(TTFont("DejaVuSans", regular_path))
+        pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", bold_path))
+        if oblique_path:
+            pdfmetrics.registerFont(TTFont("DejaVuSans-Oblique", oblique_path))
+        if bold_oblique_path:
+            pdfmetrics.registerFont(TTFont("DejaVuSans-BoldOblique", bold_oblique_path))
+        if mono_path:
+            pdfmetrics.registerFont(TTFont("DejaVuSansMono", mono_path))
+        if mono_bold_path:
+            pdfmetrics.registerFont(TTFont("DejaVuSansMono-Bold", mono_bold_path))
+        return "DejaVuSans", "DejaVuSans-Bold", "DejaVuSansMono", "DejaVuSansMono-Bold"
+
+    return "Helvetica", "Helvetica-Bold", "Courier", "Courier-Bold"
+
+
+# Initialize font registration
+FONT_REGULAR, FONT_BOLD, FONT_MONO, FONT_MONO_BOLD = _register_unicode_fonts()
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -46,7 +101,7 @@ class NumberedCanvas(canvas.Canvas):
 
     def draw_page_decorations(self, page_count: int):
         self.saveState()
-        self.setFont("Helvetica-Bold", 8)
+        self.setFont(FONT_BOLD, 8)
         self.setFillColor(colors.HexColor("#475569"))
 
         # Header (pages > 1)
@@ -62,7 +117,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setLineWidth(0.5)
         self.line(40, 45, 555, 45)
 
-        self.setFont("Helvetica", 7.5)
+        self.setFont(FONT_REGULAR, 7.5)
         self.drawString(40, 32, "CONFIDENTIAL — STRICTLY FOR LAW ENFORCEMENT & COMPLIANCE USE ONLY")
         self.drawRightString(555, 32, f"Page {self._pageNumber} of {page_count}")
         self.restoreState()
@@ -88,9 +143,9 @@ class ForensicPDFReportGenerator:
         self.title_style = ParagraphStyle(
             "DocTitle",
             parent=self.styles["Heading1"],
-            fontName="Helvetica-Bold",
-            fontSize=22,
-            leading=26,
+            fontName=FONT_BOLD,
+            fontSize=20,
+            leading=24,
             textColor=self.c_primary,
             spaceAfter=4,
         )
@@ -98,60 +153,60 @@ class ForensicPDFReportGenerator:
         self.subtitle_style = ParagraphStyle(
             "DocSubtitle",
             parent=self.styles["Normal"],
-            fontName="Helvetica",
-            fontSize=11,
-            leading=14,
+            fontName=FONT_REGULAR,
+            fontSize=10,
+            leading=13,
             textColor=colors.HexColor("#475569"),
-            spaceAfter=12,
+            spaceAfter=10,
         )
 
         self.section_heading = ParagraphStyle(
             "SectionHeading",
             parent=self.styles["Heading2"],
-            fontName="Helvetica-Bold",
-            fontSize=12,
-            leading=16,
+            fontName=FONT_BOLD,
+            fontSize=11.5,
+            leading=15,
             textColor=self.c_navy,
-            spaceBefore=12,
-            spaceAfter=6,
+            spaceBefore=10,
+            spaceAfter=5,
             keepWithNext=True,
         )
 
         self.sub_section_heading = ParagraphStyle(
             "SubSectionHeading",
             parent=self.styles["Heading3"],
-            fontName="Helvetica-Bold",
-            fontSize=9.5,
-            leading=13,
+            fontName=FONT_BOLD,
+            fontSize=9,
+            leading=12,
             textColor=colors.HexColor("#334155"),
-            spaceBefore=8,
-            spaceAfter=4,
+            spaceBefore=6,
+            spaceAfter=3,
             keepWithNext=True,
         )
 
         self.body_style = ParagraphStyle(
             "DocBody",
             parent=self.styles["Normal"],
-            fontName="Helvetica",
-            fontSize=8.5,
-            leading=11.5,
+            fontName=FONT_REGULAR,
+            fontSize=8,
+            leading=11,
             textColor=colors.HexColor("#1E293B"),
-            spaceAfter=4,
+            spaceAfter=3,
         )
 
         self.callout_style = ParagraphStyle(
             "DocCallout",
             parent=self.styles["Normal"],
-            fontName="Helvetica-Oblique",
-            fontSize=8,
-            leading=11,
+            fontName=FONT_REGULAR,
+            fontSize=7.5,
+            leading=10.5,
             textColor=colors.HexColor("#475569"),
         )
 
         self.table_cell = ParagraphStyle(
             "TableCell",
             parent=self.styles["Normal"],
-            fontName="Helvetica",
+            fontName=FONT_REGULAR,
             fontSize=7.5,
             leading=9.5,
             textColor=colors.HexColor("#1E293B"),
@@ -160,24 +215,24 @@ class ForensicPDFReportGenerator:
         self.table_cell_bold = ParagraphStyle(
             "TableCellBold",
             parent=self.table_cell,
-            fontName="Helvetica-Bold",
+            fontName=FONT_BOLD,
         )
 
         self.table_cell_header = ParagraphStyle(
             "TableCellHeader",
             parent=self.styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8,
-            leading=10,
+            fontName=FONT_BOLD,
+            fontSize=7.5,
+            leading=9.5,
             textColor=colors.white,
         )
 
         self.dna_pill = ParagraphStyle(
             "DNAPill",
             parent=self.styles["Normal"],
-            fontName="Courier-Bold",
-            fontSize=9,
-            leading=12,
+            fontName=FONT_MONO_BOLD,
+            fontSize=8,
+            leading=11,
             textColor=colors.HexColor("#0369A1"),
         )
 
@@ -275,7 +330,7 @@ class ForensicPDFReportGenerator:
         gen_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
         elements = [
-            Paragraph("JARVIS-AML INTELLIGENCE PLATFORM", ParagraphStyle("H0", fontName="Helvetica-Bold", fontSize=9, textColor=self.c_accent, leading=11)),
+            Paragraph("JARVIS-AML INTELLIGENCE PLATFORM", ParagraphStyle("H0", fontName=FONT_BOLD, fontSize=9, textColor=self.c_accent, leading=11)),
             Paragraph("FINANCIAL CRIME FORENSIC INVESTIGATION REPORT", self.title_style),
             Paragraph(f"<b>Case Identifier:</b> {case_id} &nbsp;|&nbsp; <b>Source:</b> {source_label} &nbsp;|&nbsp; <b>Generated:</b> {gen_time}", self.subtitle_style),
             HRFlowable(width="100%", thickness=1.5, color=self.c_navy, spaceBefore=0, spaceAfter=8),
@@ -401,8 +456,15 @@ class ForensicPDFReportGenerator:
         communities = case_data.get("communities", [])
 
         # Sort accounts by highest transaction volume
-        sorted_nodes = sorted(nodes, key=lambda n: float(n.get("inflow", 0)) + float(n.get("outflow", 0)), reverse=True)[:5]
-        top_hubs = ", ".join([f"{n.get('id', 'N/A')} (₹{float(n.get('inflow',0))+float(n.get('outflow',0)):,.0f})" for n in sorted_nodes]) if sorted_nodes else "None"
+        sorted_nodes = sorted(
+            nodes,
+            key=lambda n: float(n.get("inflow_total", n.get("inflow", 0))) + float(n.get("outflow_total", n.get("outflow", 0))),
+            reverse=True
+        )[:5]
+        top_hubs = ", ".join([
+            f"{n.get('id', 'N/A')} (₹{float(n.get('inflow_total', n.get('inflow', 0))) + float(n.get('outflow_total', n.get('outflow', 0))):,.0f})"
+            for n in sorted_nodes
+        ]) if sorted_nodes else "None"
 
         comm_summary = f"{len(communities)} isolated / connected sub-clusters detected." if communities else "Single connected component."
 
@@ -494,11 +556,13 @@ class ForensicPDFReportGenerator:
         for p in paths[:8]:
             pid = str(p.get("path_id", "PATH-001"))
             acc_seq = p.get("account_sequence", [])
-            route_str = " → ".join(acc_seq) if acc_seq else f"{p.get('source_account')} → {p.get('sink_account')}"
+            route_str = " → ".join(acc_seq) if acc_seq else f"{p.get('source_account')} → {p.get('destination_account', p.get('sink_account'))}"
             hops = str(p.get("hop_count", len(acc_seq)-1 if acc_seq else 1))
-            init_amt = f"₹{float(p.get('initial_amount', 0)):,.0f}"
+            init_val = float(p.get("total_inflow_inr", p.get("initial_amount", 0)))
+            init_amt = f"₹{init_val:,.0f}"
             ret = f"{float(p.get('retention_percentage', 0)):.1f}%"
-            dur = f"{float(p.get('elapsed_time_minutes', 0)):.0f} min"
+            dur_val = float(p.get("elapsed_minutes", p.get("elapsed_time_minutes", 0)))
+            dur = f"{dur_val:.0f} min"
 
             rows.append([
                 Paragraph(f"<b>{pid}</b>", self.table_cell),
@@ -697,8 +761,8 @@ class ForensicPDFReportGenerator:
 
         return [
             Paragraph("8. MONEY TRAIL DNA™ BEHAVIOURAL FINGERPRINT", self.section_heading),
-            Paragraph(f"<b>Active DNA Fingerprint:</b> <font color='#0284C7' face='Courier-Bold'>{sig}</font>", self.body_style),
-            Paragraph(f"<b>SHA-256 Evidence Seal:</b> <font color='#475569' face='Courier'>{hash_seal}</font>", self.body_style),
+            Paragraph(f"<b>Active DNA Fingerprint:</b> <font color='#0284C7' face='{FONT_MONO_BOLD}'>{sig}</font>", self.body_style),
+            Paragraph(f"<b>SHA-256 Evidence Seal:</b> <font color='#475569' face='{FONT_MONO}'>{hash_seal}</font>", self.body_style),
             Spacer(1, 4),
             table
         ]
@@ -922,7 +986,7 @@ class ForensicPDFReportGenerator:
                 ],
                 [
                     Paragraph("<b>Case Evidence SHA-256 Digest:</b>", self.table_cell),
-                    Paragraph(f"<font face='Courier'>{case_hash}</font>", self.table_cell),
+                    Paragraph(f"<font face='{FONT_MONO}'>{case_hash}</font>", self.table_cell),
                 ],
                 [
                     Paragraph("<b>Verification Protocol:</b>", self.table_cell),
