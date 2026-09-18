@@ -5,7 +5,31 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = window.location.origin.includes("http") ? window.location.origin : "http://127.0.0.1:8089";
+  // Support custom environment configuration (e.g. Vercel deployment with Render backend)
+  const configuredApiBase = window.__API_BASE_URL__ || 
+    (typeof process !== "undefined" && process.env && process.env.VITE_API_BASE_URL) ||
+    (typeof window !== "undefined" && window.VITE_API_BASE_URL);
+
+  let API_BASE = configuredApiBase;
+  if (!API_BASE) {
+    if (window.location && window.location.origin && window.location.origin.startsWith("http")) {
+      // If served by live-server or local static server on a different port (e.g. 5500, 3000, 5173), default to backend 8089
+      if (window.location.port && ["5500", "5173", "3000", "8080"].includes(window.location.port)) {
+        API_BASE = "http://127.0.0.1:8089";
+      } else {
+        API_BASE = window.location.origin;
+      }
+    } else {
+      API_BASE = "http://127.0.0.1:8089";
+    }
+  }
+
+  // Update Settings modal input if present
+  const settingsInput = document.getElementById("settingsApiUrl");
+  if (settingsInput) {
+    settingsInput.value = API_BASE;
+  }
+
 
   // Initialize Analytics Chart Renderer
   const analyticsChart = new AnalyticsChartRenderer("analyticsOverviewChart", "analyticsTooltip");

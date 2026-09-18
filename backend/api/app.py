@@ -41,14 +41,44 @@ app = FastAPI(
 )
 
 
-# Enable CORS for local dev and frontend workstation
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS Configuration - Support FRONTEND_ORIGIN env var for production and local origins
+allowed_origins_env = os.environ.get("FRONTEND_ORIGIN", "")
+allowed_origins = [
+    "http://127.0.0.1:8089",
+    "http://localhost:8089",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+if allowed_origins_env:
+    for origin in allowed_origins_env.split(","):
+        cleaned = origin.strip()
+        if cleaned and cleaned not in allowed_origins:
+            allowed_origins.append(cleaned)
+
+# If in development without FRONTEND_ORIGIN, or if wildcard specified
+if not allowed_origins_env:
+    # Allow all origins safely for local development if unset, or use explicit list
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 
 
 class InvestigationPipeline:
@@ -173,9 +203,16 @@ def generate_custom_case_id() -> str:
 
 
 
+@app.get("/health")
+def root_health_check():
+    """Minimal health check endpoint for cloud load balancers and Render health monitoring."""
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ONLINE", "system": "JARVIS-AML Intelligence Platform", "version": "1.0.0"}
+
 
 
 @app.get("/api/scenarios")

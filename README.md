@@ -57,7 +57,7 @@ cd Jarvis-AML
 
 ### 2. Install dependencies
 ```bash
-pip install fastapi uvicorn networkx reportlab pytest pydantic
+pip install -r requirements.txt
 ```
 
 ### 3. Run the backend & frontend server
@@ -72,11 +72,35 @@ http://127.0.0.1:8089/
 
 ---
 
+## 🚀 Public Deployment Guide
+
+JARVIS-AML is designed for decoupled cloud deployment:
+
+### Backend Deployment (Render)
+1. Link your GitHub repository to [Render](https://render.com).
+2. Create a new **Web Service** or use the included [`render.yaml`](file:///c:/Users/angua/OneDrive/Documents/Desktop/jarvis%20hackathon/render.yaml).
+3. **Environment**: Python 3.11+
+4. **Build Command**: `pip install -r requirements.txt`
+5. **Start Command**: `uvicorn backend.api.app:app --host 0.0.0.0 --port $PORT`
+6. **Environment Variables**:
+   - `FRONTEND_ORIGIN`: Your production Vercel frontend URL (e.g., `https://jarvis-aml.vercel.app`).
+   - `PYTHON_VERSION`: `3.11.9`
+7. **Health Check Endpoint**: `/health` (returns `{"status": "ok"}`) or `/api/health`.
+
+### Frontend Deployment (Vercel)
+1. Import your GitHub repository to [Vercel](https://vercel.com).
+2. Set root directory or public assets to `frontend/` (or repository root).
+3. **Environment Variables**:
+   - `VITE_API_BASE_URL`: Your Render backend service URL (e.g., `https://jarvis-aml-backend.onrender.com`).
+4. Deploy.
+
+---
+
 ## 🧪 Running Tests
 
 Execute the complete test suite:
 ```bash
-python -m pytest -v
+python -m pytest tests/ -v
 ```
 
 ---
@@ -86,12 +110,12 @@ python -m pytest -v
 ```
 ├── backend/
 │   ├── algorithms/        # Layering, Cycle, Rapid Movement, Fan-In/Out detectors
+│   ├── analytics/         # Simulator, Copilot, Attack Path, Role, Temporal engines
 │   ├── api/               # FastAPI REST endpoints & routes
 │   ├── data/              # Predefined scenarios (A-G) & historical DNA bank
 │   ├── dna/               # 6-Gene Money Trail DNA engine & similarity matching
 │   ├── graph/             # FinancialGraph multigraph builder & NetworkX wrappers
 │   ├── ingestion/         # Custom CSV dataset normalizer & validator
-│   ├── intelligence/      # Role inference & Priority triage scoring
 │   ├── narrative/         # Temporal stages & executive briefing synthesis
 │   └── reporting/         # ReportLab dynamic forensic PDF generator
 ├── frontend/
@@ -103,8 +127,11 @@ python -m pytest -v
 │       ├── graph_canvas.js# 2D Canvas graph renderer with particle flows
 │       ├── style.css      # SaaS design system
 │       └── timeline.js    # Temporal stage progression controller
-├── tests/                 # 68 automated pytest test suites
+├── tests/                 # 88 automated pytest test suites
 ├── jarvis_custom_test.csv # Sample transaction dataset
+├── render.yaml            # Render deployment blueprint
+├── requirements.txt       # Production & test dependencies
+├── .env.example           # Environment template
 └── pytest.ini             # Pytest configuration
 ```
 
@@ -112,3 +139,4 @@ python -m pytest -v
 
 ## 📄 License
 Academic / Hackathon Project — All rights reserved.
+
