@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS-AML | Financial Crime Intelligence & Money Trail Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body class="workstation-theme">
+  <!-- Master Application Layout -->
+  <div class="app-layout">
+    
+    <!-- ==================================================================== -->
+    <!-- 1. LEFT SLIM SIDEBAR (Dark Charcoal / Navy)                          -->
+    <!-- ==================================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <span class="logo-shield">⚡</span>
+          <span class="logo-text">JARVIS<span class="logo-accent">-AML</span></span>
+        </div>
+        <div class="system-tag">FINANCIAL INTELLIGENCE</div>
+      </div>
+
+      <!-- Navigation Hierarchy -->
+      <nav class="sidebar-nav">
+        <div class="nav-group-title">OVERVIEW</div>
+        <button class="nav-item active" data-tab="tab-overview">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="tab-cases">
+          <span class="nav-icon">📁</span>
+          <span class="nav-label">Cases</span>
+        </button>
+
+        <div class="nav-group-title" style="margin-top:10px;">ANALYSIS</div>
+        <button class="nav-item" data-action="open-custom-analysis">
+          <span class="nav-icon">💳</span>
+          <span class="nav-label">Transactions</span>
+        </button>
+        <button class="nav-item" data-tab="tab-network">
+          <span class="nav-icon">🕸</span>
+          <span class="nav-label">Network</span>
+        </button>
+        <button class="nav-item" data-tab="tab-patterns">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Patterns</span>
+        </button>
+        <button class="nav-item" data-tab="tab-entities">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Entities</span>
+        </button>
+
+        <div class="nav-group-title" style="margin-top:10px;">INVESTIGATION</div>
+        <button class="nav-item" data-tab="tab-paths">
+          <span class="nav-icon">🛤</span>
+          <span class="nav-label">Attack Paths</span>
+        </button>
+        <button class="nav-item" data-tab="tab-storyline">
+          <span class="nav-icon">⏱</span>
+          <span class="nav-label">Storyline / Timeline</span>
+        </button>
+        <button class="nav-item" data-tab="tab-evidence">
+          <span class="nav-icon">📑</span>
+          <span class="nav-label">Evidence</span>
+        </button>
+        <button class="nav-item highlight-dna" data-tab="tab-dna">
+          <span class="nav-icon">🧬</span>
+          <span class="nav-label">Money Trail DNA</span>
+        </button>
+        <button class="nav-item" data-tab="tab-leads">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Leads</span>
+        </button>
+
+        <div class="nav-group-title" style="margin-top:10px;">REPORTING</div>
+        <button class="nav-item" data-tab="tab-narrative">
+          <span class="nav-icon">📜</span>
+          <span class="nav-label">Reports</span>
+        </button>
+        <button class="nav-item" id="sidebarExportPdfBtn">
+          <span class="nav-icon">📄</span>
+          <span class="nav-label">PDF Export</span>
+        </button>
+
+        <div class="nav-group-title" style="margin-top:10px;">SYSTEM</div>
+        <button class="nav-item" data-action="open-settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+
+        <div class="nav-group-title" style="margin-top:10px;">CASE QUEUE</div>
+        <!-- Dynamic Case Queue -->
+        <div class="sidebar-case-list" id="caseQueueList">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer Status -->
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-pulse"></span>
+          <span id="systemStatusText" class="status-label">ANALYSIS READY</span>
+        </div>
+        <div class="status-meta">● GRAPH ENGINE ONLINE</div>
+      </div>
+    </aside>
+
+    <!-- ==================================================================== -->
+    <!-- 2. MAIN WORKSPACE CONTENT AREA                                        -->
+    <!-- ==================================================================== -->
+    <div class="main-content-area">
+      
+      <!-- Top Header Bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 class="page-title">Financial Crime Intelligence Dashboard</h1>
+          <p class="page-subtitle">Real-time graph analytics, attack path reconstruction & behavioural DNA fingerprinting</p>
+        </div>
+
+        <div class="header-controls">
+          <!-- Active Scenario Selector -->
+          <div class="scenario-selector-container">
+            <label for="scenarioSelect" class="selector-label">CASE:</label>
+            <select id="scenarioSelect" class="scenario-dropdown">
+              <option value="SCENARIO_G" selected>Scenario G — Combined Laundering Syndicate (DEMO)</option>
+              <option value="SCENARIO_B">Scenario B — Multi-Hop Layering Trail</option>
+              <option value="SCENARIO_C">Scenario C — Circular Round-Tripping</option>
+              <option value="SCENARIO_D">Scenario D — Rapid Pass-Through Mule</option>
+              <option value="SCENARIO_E">Scenario E — Fan-Out Structuring / Smurfing</option>
+              <option value="SCENARIO_F">Scenario F — Fan-In Funnel Aggregation</option>
+              <option value="SCENARIO_A">Scenario A — Benign Commercial Activity</option>
+            </select>
+          </div>
+
+          <!-- Account Search -->
+          <div class="search-bar-container">
+            <input type="text" id="accountSearchInput" placeholder="Search account ID..." class="search-input">
+            <button id="searchBtn" class="btn btn-secondary btn-sm">Search</button>
+          </div>
+
+          <!-- Actions -->
+          <div class="header-actions">
+            <button id="openCustomAnalysisBtn" class="btn btn-custom-action" title="Analyze custom transaction datasets">⚡ CUSTOM ANALYSIS</button>
+            <button id="exportPdfBtn" class="btn btn-primary" title="Export dynamic Forensic Investigation PDF Report">📄 Export PDF</button>
+            <button id="exportReportBtn" class="btn btn-secondary" title="Export forensic JSON dossier">💾 Export JSON</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Workspace Scrollable Container -->
+      <main class="workspace-body">
+        
+        <!-- Horizontal Investigation Tabs Strip -->
+        <nav class="investigation-tabs-bar" id="investigationTabs">
+          <button class="tab-btn active" data-tab="tab-overview">⚡ Dashboard</button>
+          <button class="tab-btn" data-tab="tab-cases">📁 Cases</button>
+          <button class="tab-btn" data-tab="tab-paths">🛤 Attack Paths</button>
+          <button class="tab-btn highlight-dna" data-tab="tab-dna">🧬 Money Trail DNA™</button>
+          <button class="tab-btn" data-tab="tab-entities">👥 Entities</button>
+          <button class="tab-btn" data-tab="tab-patterns">🔍 Patterns</button>
+          <button class="tab-btn" data-tab="tab-evidence">📑 Evidence</button>
+          <button class="tab-btn" data-tab="tab-network">🕸 Network</button>
+          <button class="tab-btn" data-tab="tab-storyline">⏱ Storyline</button>
+          <button class="tab-btn" data-tab="tab-narrative">📜 Reports</button>
+          <button class="tab-btn" data-tab="tab-leads">🎯 Leads</button>
+        </nav>
+
+        <!-- ================================================================ -->
+        <!-- TAB PANES CONTENT                                                -->
+        <!-- ================================================================ -->
+        <div class="tab-content-wrapper">
+          
+          <!-- ============================================================== -->
+          <!-- TAB 1: OVERVIEW DASHBOARD & GRAPH WORKSPACE                     -->
+          <!-- ============================================================== -->
+          <div id="tab-overview" class="tab-pane active">
+            
+            <!-- 3. DASHBOARD KPI CARDS (6 Rounded Cards) -->
+            <section class="kpi-strip">
+              <div class="kpi-card">
+                <span class="kpi-title">INVESTIGATION CASES</span>
+                <span id="caseCountBadge" class="kpi-value">7 Cases</span>
+                <span class="kpi-sub">Predefined & custom cases</span>
+              </div>
+
+              <div class="kpi-card">
+                <span class="kpi-title">SUSPICIOUS PATTERNS</span>
+                <span id="patternCountBadge" class="kpi-value">5 Clusters</span>
+                <span class="kpi-sub">Detected AML typologies</span>
+              </div>
+
+              <div class="kpi-card">
+                <span class="kpi-title">TRANSACTION VOLUME</span>
+                <span id="metaVolume" class="kpi-value highlight-inr">₹0.00</span>
+                <span class="kpi-sub">Total analyzed case volume</span>
+              </div>
+
+              <div class="kpi-card">
+                <span class="kpi-title">ATTACK PATHS</span>
+                <span id="pathCountBadge" class="kpi-value">0 Paths</span>
+                <span class="kpi-sub">Reconstructed linear trails</span>
+              </div>
+
+              <div class="kpi-card">
+                <span class="kpi-title">HIGH PRIORITY ENTITIES</span>
+                <span id="metaPriorityEntities" class="kpi-value">0 Entities</span>
+                <span class="kpi-sub">Requiring expedited triage</span>
+              </div>
+
+              <div class="kpi-card">
+                <span class="kpi-title">NETWORK RISK</span>
+                <span id="metaTypology" class="kpi-value typology-badge">Analyzing</span>
+                <span class="kpi-sub" id="metaNetworkRiskSub">Aggregate investigation risk</span>
+              </div>
+            </section>
+
+            <!-- 4. MAIN ANALYTICS CHART: SUSPICIOUS ACTIVITY OVERVIEW -->
+            <section class="analytics-chart-card" style="margin-top: 16px;">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3>Suspicious Activity Overview</h3>
+                  <p>Risk and suspicious activity evolution across the selected investigation timeline</p>
+                </div>
+                <div class="chart-legend-row">
+                  <div><span class="legend-indicator indicator-risk"></span> Suspicious Risk Index</div>
+                  <div><span class="legend-indicator indicator-volume"></span> Temporal Transaction Volume</div>
+                </div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="analyticsOverviewChart"></canvas>
+                <div id="analyticsTooltip" class="analytics-tooltip hidden"></div>
+              </div>
+            </section>
+
+            <!-- 5. AML-SPECIFIC ANALYTICS (Pattern Distribution & Priority) -->
+            <section class="aml-analytics-row" style="margin-top: 16px;">
+              <!-- Left: Pattern Distribution -->
+              <div class="analytics-panel-card">
+                <div class="panel-header-row">
+                  <div>
+                    <h4 class="panel-heading">Pattern Distribution</h4>
+                    <p class="panel-sub">Breakdown of detected money laundering typologies</p>
+                  </div>
+                  <span class="badge badge-accent" id="patternBreakdownBadge">Active Clusters</span>
+                </div>
+                <div class="pattern-bars-container" id="patternBarsContainer">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Right: Investigation Priority Table -->
+              <div class="analytics-panel-card">
+                <div class="panel-header-row">
+                  <div>
+                    <h4 class="panel-heading">Investigation Priority</h4>
+                    <p class="panel-sub">High-risk entities prioritized by role centrality and suspicious flow</p>
+                  </div>
+                  <span class="badge score-high" id="topPriorityBadge">Triage Required</span>
+                </div>
+                <div class="table-responsive-wrapper" style="box-shadow:none; border:none;">
+                  <table class="compact-priority-table">
+                    <thead>
+                      <tr>
+                        <th>Entity</th>
+                        <th>Role</th>
+                        <th>Priority</th>
+                        <th>Confidence</th>
+                        <th>Patterns</th>
+                      </tr>
+                    </thead>
+                    <tbody id="overviewPriorityTableBody">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <!-- Financial Network Graph Canvas -->
+            <div class="overview-grid" style="margin-top: 16px;">
+              <div class="graph-section-card">
+                <div class="card-header-bar">
+                  <div class="card-title-group">
+                    <span class="card-icon">🕸</span>
+                    <h3 class="card-title">FINANCIAL NETWORK GRAPH & INTELLIGENCE</h3>
+                  </div>
+
+                  <div class="graph-toolbar">
+                    <div class="view-modes" id="graphModeGroup">
+                      <button class="mode-btn active" data-mode="FULL">FULL NETWORK</button>
+                      <button class="mode-btn" data-mode="SUSPICIOUS">SUSPICIOUS ONLY</button>
+                      <button class="mode-btn" data-mode="MONEY_TRAIL">MONEY TRAIL</button>
+                      <button class="mode-btn" data-mode="ROLE_VIEW">ROLE VIEW</button>
+                      <button class="mode-btn" data-mode="2HOP">2-HOP TRACE</button>
+                      <button class="mode-btn" data-mode="PATTERNS">PATTERNS</button>
+                    </div>
+
+                    <div class="graph-quick-actions">
+                      <button id="resetZoomBtn" class="icon-btn" title="Reset Viewport">⟲ Reset</button>
+                      <button id="togglePhysicsBtn" class="icon-btn" title="Toggle Graph Motion">⏸ Freeze</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Canvas Area -->
+                <div class="canvas-wrapper">
+                  <canvas id="graphCanvas"></canvas>
+                  <div id="graphTooltip" class="graph-tooltip hidden"></div>
+
+                  <!-- Graph Legend -->
+                  <div class="graph-legend">
+                    <div class="legend-item"><span class="legend-dot role-originator"></span> Originator</div>
+                    <div class="legend-item"><span class="legend-dot role-mule"></span> Mule / Transit</div>
+                    <div class="legend-item"><span class="legend-dot role-disperser"></span> Disperser</div>
+                    <div class="legend-item"><span class="legend-dot role-aggregator"></span> Aggregator</div>
+                    <div class="legend-item"><span class="legend-dot role-sink"></span> Sink / Exit</div>
+                    <div class="legend-item"><span class="legend-dot role-legitimate"></span> Legitimate</div>
+                  </div>
+                </div>
+
+                <!-- Bottom Timeline Scrubber -->
+                <div class="timeline-bar">
+                  <div class="timeline-controls">
+                    <button id="timelinePlayBtn" class="btn btn-sm btn-secondary">▶ Play</button>
+                    <button id="timelineResetBtn" class="btn btn-sm btn-secondary">⏹ Reset</button>
+                    <span class="timeline-stage-title" id="timelineStageLabel">STAGE 1: INJECTION</span>
+                  </div>
+                  <div class="timeline-track-wrapper">
+                    <input type="range" id="timelineSlider" min="0" max="4" value="0" step="1" class="timeline-slider">
+                    <div class="timeline-markers" id="timelineMarkers">
+                      <span class="marker active">Injection</span>
+                      <span class="marker">Dispersion</span>
+                      <span class="marker">Layering</span>
+                      <span class="marker">Convergence</span>
+                      <span class="marker">Sink</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Panel: Executive Briefing & Top Priority Triage -->
+              <div class="overview-side-panel">
+                <div class="panel-card">
+                  <div class="panel-card-header">
+                    <span class="panel-card-title">EXECUTIVE BRIEFING</span>
+                    <span class="badge score-high" id="overviewRiskBadge">HIGH PRIORITY</span>
+                  </div>
+                  <div class="card-briefing" id="overviewBriefingText">Loading scenario analysis...</div>
+                </div>
+
+                <div class="panel-card">
+                  <div class="panel-card-header">
+                    <span class="panel-card-title">KEY SUSPICIOUS ACCOUNTS</span>
+                    <span style="font-size:0.72rem; color:#64748b;">Top 5 Entities</span>
+                  </div>
+                  <div class="priority-list" id="overviewPriorityList">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 2: CASE QUEUE REPOSITORY                                   -->
+          <!-- ============================================================== -->
+          <div id="tab-cases" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Investigation Case Queue & Scenario Repository</h3>
+                <p class="pane-helper">Select any registered financial crime scenario or your custom ingested transaction cases.</p>
+              </div>
+            </div>
+            <div class="table-responsive-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Case ID</th>
+                    <th>Scenario Title</th>
+                    <th>Difficulty</th>
+                    <th>Total Volume (INR)</th>
+                    <th>Monitored Accounts</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="casesTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 3: ATTACK PATHS                                            -->
+          <!-- ============================================================== -->
+          <div id="tab-paths" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Reconstructed Laundering Attack Paths & Money Trails</h3>
+                <p class="pane-helper">End-to-end topological paths reconstructed from origin placement to terminal exit sinks.</p>
+              </div>
+            </div>
+            <div class="paths-list-wide" id="attackPathsList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 4: MONEY TRAIL DNA                                         -->
+          <!-- ============================================================== -->
+          <div id="tab-dna" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Money Trail DNA™ — Behavioural Fingerprint Engine</h3>
+                <p class="pane-helper">Deterministic, explainable 6-gene behavioural fingerprinting with cryptographic integrity seal.</p>
+              </div>
+            </div>
+
+            <!-- DNA Signature Hero Card -->
+            <div class="dna-signature-box">
+              <div class="signature-title">FINANCIAL BEHAVIOURAL FINGERPRINT</div>
+              <div class="signature-display" id="dnaSignatureString">DNA-ANALYZING...</div>
+              <div class="signature-footer">
+                <span class="forensic-hash-label">Forensic Seal (SHA-256): <span id="dnaSha256Short">...</span></span>
+                <button id="verifyDnaHashBtn" class="btn-text" style="color:#38bdf8;">Verify Hash Seal</button>
+              </div>
+            </div>
+
+            <!-- 6-Gene Grid -->
+            <h4 class="section-divider-title">6-GENE BEHAVIOURAL BREAKDOWN</h4>
+            <div class="genes-grid" id="dnaGenesGrid"></div>
+
+            <!-- Historical Similarity -->
+            <h4 class="section-divider-title" style="margin-top:20px;">BEHAVIOURAL HISTORICAL CASE SIMILARITY</h4>
+            <div class="similar-cases-list" id="dnaSimilarCasesList"></div>
+
+            <!-- DNA Evolution Timeline -->
+            <h4 class="section-divider-title" style="margin-top:20px;">FINGERPRINT EVOLUTION ACROSS STAGES</h4>
+            <div class="evolution-timeline" id="dnaEvolutionList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 5: ENTITY INTELLIGENCE                                     -->
+          <!-- ============================================================== -->
+          <div id="tab-entities" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Entity Intelligence & Account Role Hypotheses</h3>
+                <p class="pane-helper">Deterministic role inference (Originator, Mule, Disperser, Aggregator, Sink) with explainable signals.</p>
+              </div>
+            </div>
+            <div class="table-responsive-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Account ID</th>
+                    <th>Role</th>
+                    <th>Role Confidence</th>
+                    <th>Priority</th>
+                    <th>Total Inflow (INR)</th>
+                    <th>Total Outflow (INR)</th>
+                    <th>Forwarding %</th>
+                    <th>Dwell Time</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="entitiesRoleList">
+                  <!-- Injected dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 6: SUSPICIOUS PATTERNS                                     -->
+          <!-- ============================================================== -->
+          <div id="tab-patterns" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Detected AML Suspicious Typologies & Pattern Clusters</h3>
+                <p class="pane-helper">Explainable detection engines evaluating layering, circular transfers, rapid movement, fan-in & fan-out.</p>
+              </div>
+            </div>
+            <div class="patterns-grid" id="detectedPatternsList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 7: EVIDENCE REGISTER                                       -->
+          <!-- ============================================================== -->
+          <div id="tab-evidence" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Forensic Evidence Chain & Transaction Register</h3>
+                <p class="pane-helper">Direct drill-down linking typologies to exact transaction records, timestamps, and routing channels.</p>
+              </div>
+            </div>
+            <div class="evidence-chain-list" id="evidenceChainList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 8: NETWORK COMMUNITIES                                     -->
+          <!-- ============================================================== -->
+          <div id="tab-network" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Network Topologies & Subgraph Communities</h3>
+                <p class="pane-helper">Betweenness centrality, hub identification, and community partitioning across monitored entities.</p>
+              </div>
+            </div>
+            <div class="communities-grid" id="communitiesList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 9: CHRONOLOGY STORYLINE                                    -->
+          <!-- ============================================================== -->
+          <div id="tab-storyline" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Chronological Investigation Storyline</h3>
+                <p class="pane-helper">Deterministic step-by-step reconstruction of funds injection, dispersion, layering, and sink aggregation.</p>
+              </div>
+            </div>
+            <div class="storyline-timeline" id="chronologicalStorylineList"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 10: NARRATIVE BRIEFING                                     -->
+          <!-- ============================================================== -->
+          <div id="tab-narrative" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Investigator Forensic Narrative Briefing</h3>
+                <p class="pane-helper">Synthesized natural language intelligence summary for law enforcement and compliance officers.</p>
+              </div>
+            </div>
+            <div class="narrative-full-view" id="fullNarrativeView"></div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- TAB 11: ACTIONABLE LEADS                                       -->
+          <!-- ============================================================== -->
+          <div id="tab-leads" class="tab-pane">
+            <div class="pane-header-box">
+              <div>
+                <h3 class="pane-heading">Actionable Investigative Leads & Directives</h3>
+                <p class="pane-helper">Evidence-grounded recommendations for field investigators and compliance officers.</p>
+              </div>
+            </div>
+            <ul class="leads-list" id="actionableLeadsList"></ul>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 8. ACCOUNT INSPECTOR SLIDE-OVER DRAWER                               -->
+  <!-- ==================================================================== -->
+  <div id="accountInspectorDrawer" class="inspector-drawer hidden">
+    <div class="drawer-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="color:#0284c7; font-size:1.1rem;">🔍</span>
+        <div>
+          <h3 id="drawerAccountTitle" style="margin:0; font-size:1rem; font-family:'JetBrains Mono', monospace;">ACC_UNKNOWN</h3>
+          <span id="drawerAccountSubtitle" style="font-size:0.75rem; color:#64748b;">Entity Profile & 2-Hop Trace</span>
+        </div>
+      </div>
+      <button id="closeDrawerBtn" class="close-btn">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawerBodyContent">
+      <!-- Injected dynamically on inspectAccount -->
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 9. CUSTOM TRANSACTION ANALYSIS MODAL                                 -->
+  <!-- ==================================================================== -->
+  <div id="customAnalysisModal" class="modal-overlay hidden">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="color:#0284c7; font-size:1.2rem;">⚡</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem;">CUSTOM TRANSACTION ANALYSIS</h3>
+            <span style="font-size:0.75rem; color:#64748b;">Analyze custom financial transaction datasets using the JARVIS-AML investigation engine</span>
+          </div>
+        </div>
+        <button id="closeCustomModalBtn" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body custom-analysis-body">
+        <!-- Input Method Switcher -->
+        <div class="custom-method-tabs">
+          <button id="methodCsvTab" class="method-tab-btn active">📁 Upload CSV File</button>
+          <button id="methodPasteTab" class="method-tab-btn">📝 Paste Transactions</button>
+          <div class="sample-actions-right">
+            <button id="loadSampleCsvBtn" class="btn btn-sm btn-secondary">⚡ Load Demo Sample</button>
+            <a href="/api/investigate/sample-csv" download="jarvis_custom_demo.csv" class="btn btn-sm btn-secondary" style="text-decoration:none;">⬇ Download Sample CSV</a>
+          </div>
+        </div>
+
+        <!-- Method 1: CSV Upload Area -->
+        <div id="methodCsvSection" class="custom-section-pane active">
+          <div id="csvDropZone" class="csv-drop-zone">
+            <div class="drop-icon">📤</div>
+            <div class="drop-title">Drag & Drop CSV transaction file here</div>
+            <div class="drop-subtitle">or click to browse from your computer (up to 50,000 transactions)</div>
+            <input type="file" id="csvFileInput" accept=".csv" class="hidden-file-input">
+            <button id="browseFileBtn" class="btn btn-secondary btn-sm" style="margin-top:10px;">Browse File</button>
+          </div>
+          <div id="fileSelectedInfo" class="file-selected-info hidden">
+            <span id="selectedFileName" style="font-weight:600; color:#0284c7;"></span>
+            <span id="selectedFileSize" style="color:#64748b; font-size:0.75rem;"></span>
+            <button id="removeSelectedFileBtn" class="btn-text" style="color:#ef4444; margin-left:8px; font-size:0.75rem;">Remove</button>
+          </div>
+        </div>
+
+        <!-- Method 2: Paste Area -->
+        <div id="methodPasteSection" class="custom-section-pane">
+          <textarea id="pasteCsvTextarea" class="paste-textarea" placeholder="transaction_id,timestamp,sender,receiver,amount,currency,channel&#10;TX001,2026-09-18 09:00:00,ACC_SOURCE,ACC_MULE1,500000,INR,NEFT&#10;TX002,2026-09-18 09:08:00,ACC_MULE1,ACC_MULE2,490000,INR,IMPS"></textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <button id="validatePastedBtn" class="btn btn-sm btn-secondary">✓ Validate Data</button>
+            <button id="clearPastedBtn" class="btn btn-text" style="font-size:0.75rem;">Clear Text</button>
+          </div>
+        </div>
+
+        <!-- Validation Summary Card -->
+        <div id="validationSummaryCard" class="validation-card hidden">
+          <div class="val-header">
+            <span style="font-weight:700; color:#0f172a; font-size:0.85rem;">VALIDATION REPORT</span>
+            <span id="valStatusBadge" class="badge">Valid</span>
+          </div>
+          <div class="val-metrics-row">
+            <div>Total Rows: <b id="valTotalRows" style="color:#0f172a;">0</b></div>
+            <div>Valid Transactions: <b id="valValidRows" style="color:#10b981;">0</b></div>
+            <div>Invalid Rows: <b id="valInvalidRows" style="color:#ef4444;">0</b></div>
+            <div>Total Volume: <b id="valTotalVol" style="color:#0284c7;">₹0.00</b></div>
+          </div>
+          <div id="valWarningsList" class="val-messages-list val-warnings hidden"></div>
+          <div id="valErrorsList" class="val-messages-list val-errors hidden"></div>
+        </div>
+
+        <!-- Submission Trigger -->
+        <div class="custom-modal-footer">
+          <button id="analyzeTransactionsBtn" class="btn btn-primary btn-large" disabled>
+            ⚡ Run JARVIS-AML Complete Pipeline
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 10. GENE EVIDENCE DRILL-DOWN MODAL                                   -->
+  <!-- ==================================================================== -->
+  <div id="geneEvidenceModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalGeneTitle" style="margin:0; font-size:1.05rem;">Gene Evidence Details</h3>
+        <button id="closeModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="modalGeneContent">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 11. SYSTEM SETTINGS MODAL                                            -->
+  <!-- ==================================================================== -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="color:#0284c7; font-size:1.1rem;">⚙️</span>
+          <h3 style="margin:0; font-size:1.05rem;">Investigation System Settings</h3>
+        </div>
+        <button id="closeSettingsModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:0.8rem; color:#475569; line-height:1.5;">
+          <div style="margin-bottom:12px;">
+            <label style="font-weight:600; color:#0f172a; display:block; margin-bottom:4px;">API Endpoint Base URL</label>
+            <input type="text" id="settingsApiUrl" class="search-input" style="width:100%; border:1px solid #cbd5e1; padding:6px 10px; border-radius:6px; background:#f8fafc;" value="http://127.0.0.1:8089" readonly>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-weight:600; color:#0f172a; display:block; margin-bottom:4px;">Graph Simulation Engine</label>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+              <span class="badge score-low">Active</span>
+              <span style="font-size:0.75rem; color:#64748b;">2D Force-Directed Layout with Particle Flow</span>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-weight:600; color:#0f172a; display:block; margin-bottom:4px;">Forensic Cryptographic Seal</label>
+            <div style="font-size:0.75rem; color:#64748b;">SHA-256 Digest validation enabled for Money Trail DNA™.</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+          <button id="dismissSettingsBtn" class="btn btn-primary btn-sm">Close Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frontend Scripts -->
+  <script src="src/chart_renderer.js"></script>
+  <script src="src/graph_canvas.js"></script>
+  <script src="src/timeline.js"></script>
+  <script src="src/dna_viewer.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
