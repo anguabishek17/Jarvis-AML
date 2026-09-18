@@ -31,6 +31,7 @@ from backend.ingestion.validator import TransactionValidator, ValidationReport
 from backend.ingestion.sample_generator import get_sample_csv_text
 from backend.reporting.pdf_report import ForensicPDFReportGenerator
 from backend.analytics.simulation_engine import InvestigationSimulatorEngine
+from backend.analytics.copilot_engine import CopilotEngine, InvestigationCopilotContext
 
 
 app = FastAPI(
@@ -144,9 +145,11 @@ pipeline = InvestigationPipeline()
 validator = TransactionValidator()
 pdf_generator = ForensicPDFReportGenerator()
 simulator_engine = InvestigationSimulatorEngine(pipeline)
+copilot_engine = CopilotEngine()
 SCENARIOS_CACHE = get_all_scenarios()
 CUSTOM_CASES_REGISTRY: Dict[str, Dict[str, Any]] = {}
 CUSTOM_GRAPHS_REGISTRY: Dict[str, FinancialMultiGraph] = {}
+LAST_SIMULATIONS_REGISTRY: Dict[str, Dict[str, Any]] = {}
 
 
 def get_case_graph(scenario_id: str) -> FinancialMultiGraph:
@@ -370,12 +373,62 @@ async def run_investigation_simulation(scenario_id: str, request: Request):
             target_id=target_id,
             scenario_id=scenario_id,
         )
+        LAST_SIMULATIONS_REGISTRY[scenario_id] = sim_result
         return sim_result
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         print(f"[Simulator] Error executing simulation for {scenario_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+
+# =========================================================================
+# Investigation Copilot Endpoints
+# =========================================================================
+
+@app.get("/api/copilot/context/{scenario_id}")
+def get_copilot_context(scenario_id: str):
+    """
+    Returns structured, compact investigation context for the active scenario,
+    including attack paths, DNA signature, detected typologies, roles, and latest simulation.
+    """
+    case_data = get_case_investigation(scenario_id)
+    last_sim = LAST_SIMULATIONS_REGISTRY.get(scenario_id)
+    ctx = InvestigationCopilotContext(case_data, simulation_data=last_sim)
+    return ctx.to_compact_dict()
+
+
+@app.api_route("/api/copilot/query", methods=["POST", "OPTIONS"])
+@app.api_route("/api/copilot/query/", methods=["POST", "OPTIONS"])
+async def query_investigation_copilot(request: Request):
+    """
+    Queries the native Investigation Copilot regarding the currently active case.
+    Returns grounded, evidence-backed explanations and interactive entity/path graph directives.
+    """
+    if request.method == "OPTIONS":
+        return Response(status_code=200)
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    scenario_id = body.get("scenario_id", "SCENARIO_G")
+    question = body.get("question", "")
+
+    if not question:
+        raise HTTPException(status_code=400, detail="Missing required field 'question'.")
+
+    case_data = get_case_investigation(scenario_id)
+    last_sim = LAST_SIMULATIONS_REGISTRY.get(scenario_id)
+    ctx = InvestigationCopilotContext(case_data, simulation_data=last_sim)
+
+    result = copilot_engine.query(ctx, question)
+    return {
+        "scenario_id": scenario_id,
+        "question": question,
+        **result
+    }
 
 
 

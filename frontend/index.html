@@ -56,6 +56,10 @@
         </button>
 
         <div class="nav-group-title" style="margin-top:10px;">INVESTIGATION</div>
+        <button class="nav-item highlight-copilot" id="sidebarCopilotBtn" data-action="open-copilot">
+          <span class="nav-icon">✨</span>
+          <span class="nav-label">Copilot</span>
+        </button>
         <button class="nav-item" data-tab="tab-paths">
           <span class="nav-icon">🛤</span>
           <span class="nav-label">Attack Paths</span>
@@ -149,6 +153,7 @@
 
           <!-- Actions -->
           <div class="header-actions">
+            <button id="openCopilotBtn" class="btn btn-copilot-action" title="Open AI Investigation Copilot">✨ COPILOT</button>
             <button id="openSimulatorBtn" class="btn btn-simulator-action" title="Run What-If Network Simulation">🔬 SIMULATOR</button>
             <button id="openCustomAnalysisBtn" class="btn btn-custom-action" title="Analyze custom transaction datasets">⚡ CUSTOM ANALYSIS</button>
             <button id="exportPdfBtn" class="btn btn-primary" title="Export dynamic Forensic Investigation PDF Report">📄 Export PDF</button>
@@ -562,6 +567,65 @@
 
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 7. INVESTIGATION COPILOT SLIDE-OVER DRAWER                           -->
+  <!-- ==================================================================== -->
+  <div id="copilotDrawer" class="copilot-drawer hidden">
+    <div class="copilot-drawer-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="copilot-header-icon">✨</span>
+        <div>
+          <h3 style="margin:0; font-size:0.95rem; font-weight:700; color:#0f172a;">JARVIS INVESTIGATION COPILOT</h3>
+          <span id="copilotCaseContextLabel" style="font-size:0.72rem; color:#64748b;">Context: SCENARIO_G</span>
+        </div>
+      </div>
+      <button id="closeCopilotDrawerBtn" class="close-btn">&times;</button>
+    </div>
+
+    <!-- Predefined Prompt Chips Strip -->
+    <div class="copilot-chips-bar">
+      <button class="copilot-chip" data-query="Summarize this investigation.">⚡ Summarize Case</button>
+      <button class="copilot-chip" data-query="Why is ACC_GATEKEEPER_MULE important?">🔍 ACC_GATEKEEPER_MULE</button>
+      <button class="copilot-chip" data-query="What is the longest attack path?">🛤 Longest Path</button>
+      <button class="copilot-chip" data-query="Explain the Money Trail DNA.">🧬 Money Trail DNA</button>
+      <button class="copilot-chip" data-query="What are the main suspicious patterns?">📊 Detected Typologies</button>
+      <button class="copilot-chip" data-query="Who is the top priority entity?">🎯 Top Priority Entity</button>
+      <button class="copilot-chip" data-query="What would happen if ACC_GATEKEEPER_MULE was removed?">🔬 What-If Simulation</button>
+    </div>
+
+    <!-- Chat Messages Stream Container -->
+    <div class="copilot-chat-body" id="copilotChatStream">
+      <div class="copilot-msg copilot-msg-system">
+        <div class="copilot-msg-avatar">✨</div>
+        <div class="copilot-msg-content">
+          <p><b>JARVIS Investigation Copilot Online.</b></p>
+          <p style="margin-top:4px; font-size:0.75rem; color:#475569;">
+            I can answer natural-language questions about this investigation case, explain why entities and patterns were flagged, interpret Money Trail DNA™, and trace reconstructed money trails with zero hallucination.
+          </p>
+          <div style="margin-top:8px; font-size:0.7rem; color:#64748b;">
+            💡 <i>Click a quick suggestion chip above or type your question below.</i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copilot Input Controls Footer -->
+    <div class="copilot-drawer-footer">
+      <form id="copilotForm" class="copilot-input-form" onsubmit="return false;">
+        <input 
+          type="text" 
+          id="copilotInput" 
+          class="copilot-input-field" 
+          placeholder="Ask a question about this case (e.g., Why is ACC_GATEKEEPER_MULE flagged?)..."
+          autocomplete="off"
+        />
+        <button type="submit" id="copilotSendBtn" class="btn btn-primary copilot-send-btn">
+          <span>Ask</span> ➔
+        </button>
+      </form>
     </div>
   </div>
 

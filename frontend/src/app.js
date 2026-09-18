@@ -1114,6 +1114,13 @@ document.addEventListener("DOMContentLoaded", () => {
       populateNarrativeTab(currentCaseData);
       populateLeadsTab(currentCaseData);
 
+      // 7. Sync Copilot Active Context
+      const copilotCtxLabel = document.getElementById("copilotCaseContextLabel");
+      if (copilotCtxLabel) {
+        copilotCtxLabel.textContent = `Context: ${scenarioId}`;
+      }
+      resetCopilotChatStream(scenarioId);
+
       if (statusText) statusText.textContent = "ANALYSIS READY";
     } catch (err) {
       console.error("Failed to load scenario case:", err);
@@ -1533,8 +1540,313 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // =========================================================================
+  // Investigation Copilot Controller (AI Assistant & Action Dispatcher)
+  // =========================================================================
+  const copilotDrawer = document.getElementById("copilotDrawer");
+  const openCopilotBtn = document.getElementById("openCopilotBtn");
+  const sidebarCopilotBtn = document.getElementById("sidebarCopilotBtn");
+  const closeCopilotDrawerBtn = document.getElementById("closeCopilotDrawerBtn");
+  const copilotForm = document.getElementById("copilotForm");
+  const copilotInput = document.getElementById("copilotInput");
+  const copilotSendBtn = document.getElementById("copilotSendBtn");
+  const copilotChatStream = document.getElementById("copilotChatStream");
+
+  function openCopilot() {
+    if (copilotDrawer) {
+      copilotDrawer.classList.remove("hidden");
+      if (copilotInput) copilotInput.focus();
+    }
+  }
+
+  function closeCopilot() {
+    if (copilotDrawer) {
+      copilotDrawer.classList.add("hidden");
+    }
+  }
+
+  if (openCopilotBtn) {
+    openCopilotBtn.addEventListener("click", openCopilot);
+  }
+
+  if (sidebarCopilotBtn) {
+    sidebarCopilotBtn.addEventListener("click", openCopilot);
+  }
+
+  if (closeCopilotDrawerBtn) {
+    closeCopilotDrawerBtn.addEventListener("click", closeCopilot);
+  }
+
+  // Bind any element with data-action="open-copilot"
+  document.querySelectorAll("[data-action='open-copilot']").forEach(btn => {
+    btn.addEventListener("click", openCopilot);
+  });
+
+  // Prompt Chips Handler
+  document.querySelectorAll(".copilot-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const query = chip.dataset.query || chip.textContent.trim();
+      if (copilotInput) {
+        copilotInput.value = query;
+      }
+      submitCopilotQuery(query);
+    });
+  });
+
+  if (copilotForm) {
+    copilotForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const q = copilotInput.value.trim();
+      if (q) {
+        submitCopilotQuery(q);
+      }
+    });
+  }
+
+  function resetCopilotChatStream(scenarioId) {
+    if (!copilotChatStream) return;
+    copilotChatStream.innerHTML = `
+      <div class="copilot-msg copilot-msg-system">
+        <div class="copilot-msg-avatar">✨</div>
+        <div class="copilot-msg-content">
+          <p><b>JARVIS Investigation Copilot Online.</b></p>
+          <p style="margin-top:4px; font-size:0.75rem; color:#475569;">
+            Active Context: <b>${scenarioId}</b>. Ask any natural language question or select a quick query above.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  async function submitCopilotQuery(queryText) {
+    if (!queryText || !currentCaseData) return;
+
+    // 1. Render User Message
+    appendUserMessage(queryText);
+    if (copilotInput) copilotInput.value = "";
+    if (copilotSendBtn) copilotSendBtn.disabled = true;
+
+    // 2. Render Thinking Placeholder
+    const thinkingId = "copilot-thinking-" + Date.now();
+    appendThinkingMessage(thinkingId);
+    scrollCopilotToBottom();
+
+    try {
+      const res = await fetch(`${API_BASE}/api/copilot/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario_id: currentCaseData.scenario_id,
+          question: queryText
+        })
+      });
+
+      const data = await res.json();
+      removeThinkingMessage(thinkingId);
+
+      if (!res.ok) {
+        appendBotMessage({
+          answer: `Error (${res.status}): ${data.detail || "Failed to process query."}`,
+          confidence: "LOW",
+          why: [],
+          evidence: [],
+          actions: []
+        });
+      } else {
+        appendBotMessage(data);
+      }
+    } catch (err) {
+      console.error("[Copilot] Query error:", err);
+      removeThinkingMessage(thinkingId);
+      appendBotMessage({
+        answer: `Network connection error: ${err.message}. Ensure backend is running.`,
+        confidence: "LOW",
+        why: [],
+        evidence: [],
+        actions: []
+      });
+    } finally {
+      if (copilotSendBtn) copilotSendBtn.disabled = false;
+      scrollCopilotToBottom();
+    }
+  }
+
+  function appendUserMessage(text) {
+    if (!copilotChatStream) return;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "copilot-msg copilot-msg-user";
+    msgDiv.innerHTML = `
+      <div class="copilot-msg-content">
+        <p>${escapeHtml(text)}</p>
+      </div>
+    `;
+    copilotChatStream.appendChild(msgDiv);
+  }
+
+  function appendThinkingMessage(id) {
+    if (!copilotChatStream) return;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "copilot-msg copilot-msg-bot thinking";
+    msgDiv.id = id;
+    msgDiv.innerHTML = `
+      <div class="copilot-msg-avatar">✨</div>
+      <div class="copilot-msg-content">
+        <p style="font-style:italic; color:#0284c7;">Analyzing investigation topology & evidence...</p>
+      </div>
+    `;
+    copilotChatStream.appendChild(msgDiv);
+  }
+
+  function removeThinkingMessage(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function appendBotMessage(data) {
+    if (!copilotChatStream) return;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "copilot-msg copilot-msg-bot";
+
+    // Why section
+    let whyHtml = "";
+    if (data.why && data.why.length > 0) {
+      whyHtml = `
+        <div class="copilot-why-box">
+          <div class="copilot-why-title">Why This Matters:</div>
+          <ul class="copilot-why-list">
+            ${data.why.map(w => `<li>${escapeHtml(w)}</li>`).join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+    // Evidence Section
+    let evidenceHtml = "";
+    if (data.evidence && data.evidence.length > 0) {
+      evidenceHtml = `
+        <div class="copilot-evidence-box">
+          <div class="copilot-evidence-title">Evidence Citations:</div>
+          <div class="copilot-evidence-pills">
+            ${data.evidence.map(e => `<span class="copilot-evidence-pill">${escapeHtml(e)}</span>`).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    // Actions Section
+    let actionsHtml = "";
+    if (data.actions && data.actions.length > 0) {
+      actionsHtml = `
+        <div class="copilot-actions-bar">
+          ${data.actions.map((act, idx) => {
+            return `
+              <button class="copilot-action-btn" data-act-type="${escapeHtml(act.type)}" data-act-target="${escapeHtml(act.target || '')}">
+                ${escapeHtml(act.label || 'Take Action')}
+              </button>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    const confBadge = data.confidence ? `<span class="badge ${data.confidence === 'HIGH' ? 'score-low' : (data.confidence === 'MEDIUM' ? 'score-med' : 'score-high')}" style="font-size:0.65rem; padding:1px 5px;">${data.confidence} CONFIDENCE</span>` : "";
+
+    msgDiv.innerHTML = `
+      <div class="copilot-msg-avatar">✨</div>
+      <div class="copilot-msg-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:0.7rem; font-weight:700; color:#0284c7;">JARVIS INTELLIGENCE</span>
+          ${confBadge}
+        </div>
+        <p style="white-space:pre-line;">${formatMarkdownLite(data.answer)}</p>
+        ${whyHtml}
+        ${evidenceHtml}
+        ${actionsHtml}
+      </div>
+    `;
+
+    // Bind action buttons inside this message
+    msgDiv.querySelectorAll(".copilot-action-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        executeCopilotAction(btn.dataset.actType, btn.dataset.actTarget);
+      });
+    });
+
+    copilotChatStream.appendChild(msgDiv);
+  }
+
+  function executeCopilotAction(type, target) {
+    console.log("[Copilot Action]", type, target);
+    switch (type) {
+      case "focus_node":
+        if (target) {
+          inspectAccount(target);
+          activateTab("tab-overview");
+        }
+        break;
+
+      case "trace_path":
+        if (target && currentCaseData && currentCaseData.attack_paths) {
+          const path = currentCaseData.attack_paths.find(p => p.path_id === target);
+          if (path && path.path_sequence) {
+            graphRenderer.activePathNodeIds = new Set(path.path_sequence);
+            graphRenderer.activePathEdges = new Set();
+            for (let i = 0; i < path.path_sequence.length - 1; i++) {
+              graphRenderer.activePathEdges.add(`${path.path_sequence[i]}->${path.path_sequence[i+1]}`);
+            }
+            graphRenderer.mode = "MONEY_TRAIL";
+            activateTab("tab-overview");
+            graphRenderer.draw();
+          }
+        }
+        break;
+
+      case "open_simulator":
+        openSimulatorWithTarget("account", target || null);
+        break;
+
+      case "navigate_tab":
+        if (target) {
+          activateTab(target);
+        }
+        break;
+
+      case "focus_simulation":
+        openSimulatorWithTarget("account", target || null);
+        break;
+
+      default:
+        console.warn("Unknown copilot action:", type);
+    }
+  }
+
+  function scrollCopilotToBottom() {
+    if (copilotChatStream) {
+      copilotChatStream.scrollTop = copilotChatStream.scrollHeight;
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatMarkdownLite(str) {
+    if (!str) return "";
+    // Bold **text**
+    let formatted = escapeHtml(str);
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    return formatted;
+  }
+
   // Initial Load
   loadScenariosList().then(() => {
     loadCase("SCENARIO_G");
   });
 });
+
