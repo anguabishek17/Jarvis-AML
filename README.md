@@ -432,6 +432,46 @@ Expected output:
 
 ---
 
-## 📄 License
-Academic / Hackathon Project — All rights reserved.
+## 📄 License & Intellectual Property
+
+This project is licensed under the **MIT License** with academic and hackathon evaluation provisions.
+
+```text
+MIT License
+
+Copyright (c) 2026 JARVIS-AML Project Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+### 🛡️ Legal, Academic & Regulatory Disclaimers
+
+1. **Synthetic Data & Privacy Compliance**:
+   - All account numbers (`ACC_...`), names, IFSC codes, transaction amounts, and scenarios embedded within this repository are **100% synthetically generated** for demonstration, benchmarking, and hackathon evaluation purposes.
+   - No Personally Identifiable Information (PII) or real-world bank account data is stored or processed.
+
+2. **Money Trail DNA™ & Proprietary Algorithms**:
+   - The **Money Trail DNA™** 6-gene bio-inspired formulation, topological graph disruption algorithms, and two-layer grounded investigation copilot represent original intellectual property developed for the **JARVIS-AML** intelligence platform.
+   - Academic citation, research replication, and non-commercial evaluation by hackathon juries and financial intelligence units are permitted under the terms of the MIT License.
+
+3. **Regulatory & Compliance Disclaimer**:
+   - JARVIS-AML is an investigative assistance intelligence platform designed to augment human AML analysts and compliance officers. Output dossiers and priority triage scores do not constitute automated legal or regulatory freezing directives without qualified human investigator sign-off.
 
