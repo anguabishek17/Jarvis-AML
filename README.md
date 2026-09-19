@@ -22,87 +22,78 @@
 ## 🏗 End-to-End System Architecture (Hackathon Core)
 
 ```mermaid
-graph LR
-    %% Data Ingestion & Normalization
-    subgraph INGEST ["📦 1. INGESTION & VALIDATION"]
-        direction TB
-        RAW["Raw Transactions<br/>(CSV / JSON / Stream)"]
-        VAL["Pre-Analysis Validator<br/>(Schema · Currency · Nulls)"]
-        RAW --> VAL
+graph TD
+    %% Tier 1: Ingestion
+    subgraph TIER1 ["📦 STEP 1: INGESTION & DATA VALIDATION"]
+        RAW["📄 Raw Financial Data<br/><b>CSV / JSON / Real-Time Streams</b>"] --> VAL["⚡ Pre-Analysis Validator<br/><b>Strict Schema · INR Currency · ISO Timestamps · Null Checks</b>"]
     end
 
-    %% Graph & Topology Engine
-    subgraph TOPOLOGY ["🌐 2. TOPOLOGICAL MULTIGRAPH"]
-        direction TB
-        FMG["Directed Financial Graph<br/>(NetworkX MultiDiGraph)"]
-        CENT["Centrality & Community<br/>(Betweenness · Louvain)"]
-        FMG --> CENT
+    %% Tier 2: Topological Graph Engine
+    subgraph TIER2 ["🌐 STEP 2: TOPOLOGICAL GRAPH RECONSTRUCTION"]
+        FMG["🕸️ Financial MultiGraph (MultiDiGraph)<br/><b>Directed Transaction Edges · In/Outflow Accumulation</b>"] --> CENT["📊 Network Topology Engine<br/><b>Betweenness Centrality · Louvain Communities · Degree Metrics</b>"]
     end
 
-    %% Deterministic AML Engine
-    subgraph AML ["🔍 3. AML DETECTION ENGINES"]
-        direction TB
-        D1["Layering Chains (High-Retention)"]
-        D2["Circular Round-Tripping (Cycles)"]
-        D3["Rapid Velocity (Low Dwell Mules)"]
-        D4["Structuring & Funnels (Fan-In/Out)"]
+    %% Tier 3: AML Detectors
+    subgraph TIER3 ["🔍 STEP 3: DETERMINISTIC AML DETECTION SUITE"]
+        DET1["⛓️ Layering Trails<br/><b>Multi-Hop Retention >= 70%</b>"]
+        DET2["🔄 Circular Transfers<br/><b>Round-Tripping Cycle Detection</b>"]
+        DET3["⚡ Rapid Movement<br/><b>Pass-Through Velocity (< 30m)</b>"]
+        DET4["🔱 Structuring & Funnels<br/><b>Fan-Out Dispersal & Fan-In Aggregation</b>"]
     end
 
-    %% Forensic Intelligence Core
-    subgraph INTEL ["🧠 4. FORENSIC INTELLIGENCE CORE"]
-        direction TB
-        ROLE["Role Inference Engine<br/>(Originator · Mule · Sink)"]
-        PATH["Attack Path Reconstructor<br/>(Max-Hop Flow Trails)"]
-        DNA["Money Trail DNA™<br/>(6-Gene Vector + SHA-256)"]
-        PRIO["Triage Priority Matrix<br/>(0-100 Mathematical Risk)"]
-        ROLE --> PATH --> DNA --> PRIO
+    %% Tier 4: Intelligence Core
+    subgraph TIER4 ["🧠 STEP 4: FORENSIC INTELLIGENCE & DNA RECONSTRUCTION"]
+        ROLES["🏷️ Operational Role Inference<br/><b>Originators · Mules · Dispersers · Aggregators · Terminal Sinks</b>"]
+        PATHS["🛤️ Attack Path Reconstruction<br/><b>Linear Origin-to-Sink Chains & Maximum Hop Sequences</b>"]
+        DNA["🧬 6-Gene Money Trail DNA™<br/><b>Standardized Behavioural Fingerprint + SHA-256 Forensic Integrity Seal</b>"]
+        PRIO["🎯 Triage Priority Scorer (0-100)<br/><b>Mathematical Multi-Factor Threat Matrix</b>"]
+        
+        ROLES --> PATHS --> DNA --> PRIO
     end
 
-    %% Interactive & Copilot Layer
-    subgraph INTERACT ["🔬 5. INVESTIGATION & COPILOT"]
-        direction TB
-        SIM["What-If Simulator<br/>(Counterfactual Removal)"]
-        COP["Investigation Copilot<br/>(Zero-Hallucination AI)"]
+    %% Tier 5: Investigation & Simulation
+    subgraph TIER5 ["🔬 STEP 5: INVESTIGATION COPILOT & WHAT-IF SIMULATOR"]
+        SIM["🧪 Counterfactual What-If Simulator<br/><b>Hypothetical Entity/Edge Removal & Disruption Comparison</b>"]
+        COP["✨ Zero-Hallucination Copilot<br/><b>Grounded Natural Language Assistant with Interactive Directives</b>"]
     end
 
-    %% Output & Presentation
-    subgraph OPS ["📊 6. OPERATIONS CENTER"]
-        direction TB
-        UI["Real-Time Canvas UI<br/>(Particle Flows · Cytoscape)"]
-        PDF["Forensic PDF Dossier<br/>(14 Audit Sections · SHA Seal)"]
+    %% Tier 6: Operations Center
+    subgraph TIER6 ["📊 STEP 6: JURY & INVESTIGATOR OPERATIONS CENTER"]
+        UI["🖥️ Real-Time Intelligence Dashboard<br/><b>Interactive Force Canvas · Particle Flow · 5-Stage Timeline</b>"]
+        PDF["📑 Forensic Audit Dossier<br/><b>Court-Ready 14-Section PDF with Cryptographic Proof</b>"]
     end
 
-    %% Pipeline Connections
+    %% Inter-Tier Pipeline Links
     VAL ==> FMG
-    FMG ==> AML
-    AML ==> ROLE
-    PRIO ==> INTERACT
-    INTERACT ==> OPS
+    CENT ==> DET1 & DET2 & DET3 & DET4
+    DET1 & DET2 & DET3 & DET4 ==> ROLES
+    PRIO ==> SIM & COP
+    SIM & COP ==> UI & PDF
 
-    %% Styling & Theme Accents
-    style INGEST fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
-    style TOPOLOGY fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc
-    style AML fill:#0f172a,stroke:#f43f5e,stroke-width:2px,color:#f8fafc
-    style INTEL fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc
-    style INTERACT fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
-    style OPS fill:#0f172a,stroke:#a855f7,stroke-width:2px,color:#f8fafc
+    %% High-Contrast Jury Presentation Styling
+    style TIER1 fill:#0f172a,stroke:#38bdf8,stroke-width:3px,color:#ffffff
+    style TIER2 fill:#0f172a,stroke:#818cf8,stroke-width:3px,color:#ffffff
+    style TIER3 fill:#0f172a,stroke:#f43f5e,stroke-width:3px,color:#ffffff
+    style TIER4 fill:#0f172a,stroke:#10b981,stroke-width:3px,color:#ffffff
+    style TIER5 fill:#0f172a,stroke:#f59e0b,stroke-width:3px,color:#ffffff
+    style TIER6 fill:#0f172a,stroke:#c084fc,stroke-width:3px,color:#ffffff
 
-    style RAW fill:#1e293b,stroke:#0284c7,color:#ffffff
-    style VAL fill:#1e293b,stroke:#0284c7,color:#ffffff
-    style FMG fill:#1e293b,stroke:#6366f1,color:#ffffff
-    style CENT fill:#1e293b,stroke:#6366f1,color:#ffffff
-    style D1 fill:#1e293b,stroke:#e11d48,color:#ffffff
-    style D2 fill:#1e293b,stroke:#e11d48,color:#ffffff
-    style D3 fill:#1e293b,stroke:#e11d48,color:#ffffff
-    style D4 fill:#1e293b,stroke:#e11d48,color:#ffffff
-    style ROLE fill:#1e293b,stroke:#059669,color:#ffffff
-    style PATH fill:#1e293b,stroke:#059669,color:#ffffff
-    style DNA fill:#1e293b,stroke:#059669,color:#ffffff
-    style PRIO fill:#1e293b,stroke:#059669,color:#ffffff
-    style SIM fill:#1e293b,stroke:#d97706,color:#ffffff
-    style COP fill:#1e293b,stroke:#d97706,color:#ffffff
-    style UI fill:#1e293b,stroke:#9333ea,color:#ffffff
-    style PDF fill:#1e293b,stroke:#9333ea,color:#ffffff
+    style RAW fill:#1e293b,stroke:#0284c7,stroke-width:2px,color:#f8fafc
+    style VAL fill:#1e293b,stroke:#0284c7,stroke-width:2px,color:#f8fafc
+    style FMG fill:#1e293b,stroke:#6366f1,stroke-width:2px,color:#f8fafc
+    style CENT fill:#1e293b,stroke:#6366f1,stroke-width:2px,color:#f8fafc
+    style DET1 fill:#1e293b,stroke:#e11d48,stroke-width:2px,color:#f8fafc
+    style DET2 fill:#1e293b,stroke:#e11d48,stroke-width:2px,color:#f8fafc
+    style DET3 fill:#1e293b,stroke:#e11d48,stroke-width:2px,color:#f8fafc
+    style DET4 fill:#1e293b,stroke:#e11d48,stroke-width:2px,color:#f8fafc
+    style ROLES fill:#1e293b,stroke:#059669,stroke-width:2px,color:#f8fafc
+    style PATHS fill:#1e293b,stroke:#059669,stroke-width:2px,color:#f8fafc
+    style DNA fill:#1e293b,stroke:#059669,stroke-width:2px,color:#f8fafc
+    style PRIO fill:#1e293b,stroke:#059669,stroke-width:2px,color:#f8fafc
+    style SIM fill:#1e293b,stroke:#d97706,stroke-width:2px,color:#f8fafc
+    style COP fill:#1e293b,stroke:#d97706,stroke-width:2px,color:#f8fafc
+    style UI fill:#1e293b,stroke:#9333ea,stroke-width:2px,color:#f8fafc
+    style PDF fill:#1e293b,stroke:#9333ea,stroke-width:2px,color:#f8fafc
 ```
 
 ---
