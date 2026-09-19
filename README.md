@@ -1,6 +1,21 @@
 # JARVIS-AML — AI-Powered Financial Crime Investigation & Money Trail Intelligence System
 
-**JARVIS-AML** is an explainable graph-based Anti-Money Laundering (AML) intelligence platform and financial crime investigation operations center. It provides end-to-end topological money trail reconstruction, deterministic typology detection, account role inference, 6-gene Money Trail DNA™ fingerprinting with cryptographic integrity verification, temporal risk evolution, custom CSV dataset ingestion, and dynamic forensic PDF dossier export.
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3119/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109.2-009688.svg)](https://fastapi.tiangolo.com/)
+[![Tests](https://img.shields.io/badge/tests-89%20passed-success.svg)](https://pytest.org/)
+[![Vercel](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://jarvis-aml.vercel.app)
+[![Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render)](https://jarvis-aml.onrender.com)
+
+**JARVIS-AML** is an explainable graph-based Anti-Money Laundering (AML) intelligence platform and financial crime investigation operations center. It provides end-to-end topological money trail reconstruction, deterministic typology detection, account role inference, 6-gene Money Trail DNA™ fingerprinting with cryptographic integrity verification, temporal risk evolution, custom CSV dataset ingestion, interactive What-If scenario simulation, a zero-hallucination Investigation Copilot, and dynamic forensic PDF dossier export.
+
+---
+
+## 🌐 Live Production Deployments
+
+- **Frontend (Vercel)**: [https://jarvis-aml.vercel.app](https://jarvis-aml.vercel.app)
+- **Backend API (Render)**: [https://jarvis-aml.onrender.com](https://jarvis-aml.onrender.com)
+- **Interactive API Documentation**: [https://jarvis-aml.onrender.com/docs](https://jarvis-aml.onrender.com/docs)
+- **Health Check**: [https://jarvis-aml.onrender.com/health](https://jarvis-aml.onrender.com/health)
 
 ---
 
@@ -23,17 +38,27 @@
    - Multi-mode filtering: `FULL NETWORK`, `SUSPICIOUS ONLY`, `MONEY TRAIL`, `ROLE VIEW`, `2-HOP TRACE`, `PATTERNS`.
    - Interactive 5-stage temporal timeline scrubber (`Injection` $\to$ `Dispersion` $\to$ `Layering` $\to$ `Convergence` $\to$ `Sink`).
 
-4. **Entity Intelligence & Role Inference**:
+4. **Investigation Copilot (AI Intelligence Layer)**:
+   - Zero-hallucination explainability engine grounded strictly in active case dossier facts.
+   - Deep entity explainability (`Why is ACC_GATEKEEPER_MULE important?`).
+   - Longest attack path analysis, pattern triage, Money Trail DNA breakdown, and court evidence briefings.
+   - Interactive UI directives: highlight on graph, trace attack trail, and launch counterfactual simulations.
+
+5. **Investigation Simulator (What-If Disruptions)**:
+   - Counterfactual graph disruption engine to simulate hypothetical entity or transaction removal.
+   - Before-versus-after network metrics, disrupted attack paths, broken typologies, and role-shift analytics.
+
+6. **Entity Intelligence & Role Inference**:
    - Heuristic classification: `ORIGINATOR`, `MULE`, `DISPERSER`, `AGGREGATOR`, `SINK`, `LEGITIMATE`.
    - Quantitative signals: Forwarding ratio, dwell time, betweenness centrality, degree distribution, and in/outflow asymmetry.
    - Slide-over right drawer account inspector with 2-hop neighborhood exploration.
 
-5. **Custom Ingestion Pipeline**:
+7. **Custom Ingestion Pipeline**:
    - Upload custom transaction CSV files or paste raw transaction records.
    - Real-time pre-validation (`/api/investigate/validate`) with error/warning diagnostics.
    - Complete execution of graph builder, detectors, DNA generator, and report synthesis.
 
-6. **Dynamic Forensic PDF Dossier Export**:
+8. **Dynamic Forensic PDF Dossier Export**:
    - Multi-page ReportLab PDF export with 14 comprehensive audit sections.
    - Dynamic per-case generation with forensic timestamps and cryptographic seals.
 
@@ -41,9 +66,9 @@
 
 ## 🛠 Tech Stack
 
-- **Backend**: Python 3.11+, FastAPI, Uvicorn, NetworkX, ReportLab, Pytest
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5 Canvas, Modern CSS Design System (Inter typography, clean SaaS light workspace with dark sidebar)
-- **Testing**: 68 comprehensive automated test suites covering algorithms, routes, custom datasets, and PDF generation.
+- **Backend**: Python 3.11.9, FastAPI, Uvicorn, NetworkX, ReportLab, Pytest
+- **Frontend**: Vanilla JavaScript (ES6+), HTML5 Canvas, Modern CSS Design System (Inter typography, clean SaaS light workspace with dark sidebar), Vite
+- **Testing**: 89 comprehensive automated test suites covering algorithms, routes, custom datasets, copilot explainability, simulation, and PDF generation.
 
 ---
 
@@ -55,12 +80,12 @@ git clone https://github.com/anguabishek17/Jarvis-AML.git
 cd Jarvis-AML
 ```
 
-### 2. Install dependencies
+### 2. Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run the backend & frontend server
+### 3. Run the backend & frontend server locally
 ```bash
 python -m uvicorn backend.api.app:app --host 127.0.0.1 --port 8089
 ```
@@ -72,35 +97,16 @@ http://127.0.0.1:8089/
 
 ---
 
-## 🚀 Public Deployment Guide
-
-JARVIS-AML is designed for decoupled cloud deployment:
-
-### Backend Deployment (Render)
-1. Link your GitHub repository to [Render](https://render.com).
-2. Create a new **Web Service** or use the included [`render.yaml`](file:///c:/Users/angua/OneDrive/Documents/Desktop/jarvis%20hackathon/render.yaml).
-3. **Environment**: Python 3.11+
-4. **Build Command**: `pip install -r requirements.txt`
-5. **Start Command**: `uvicorn backend.api.app:app --host 0.0.0.0 --port $PORT`
-6. **Environment Variables**:
-   - `FRONTEND_ORIGIN`: Your production Vercel frontend URL (e.g., `https://jarvis-aml.vercel.app`).
-   - `PYTHON_VERSION`: `3.11.9`
-7. **Health Check Endpoint**: `/health` (returns `{"status": "ok"}`) or `/api/health`.
-
-### Frontend Deployment (Vercel)
-1. Import your GitHub repository to [Vercel](https://vercel.com).
-2. Set root directory or public assets to `frontend/` (or repository root).
-3. **Environment Variables**:
-   - `VITE_API_BASE_URL`: Your Render backend service URL (e.g., `https://jarvis-aml-backend.onrender.com`).
-4. Deploy.
-
----
-
 ## 🧪 Running Tests
 
 Execute the complete test suite:
 ```bash
 python -m pytest tests/ -v
+```
+
+Expected output:
+```text
+============================= 89 passed in 18.07s =============================
 ```
 
 ---
@@ -120,6 +126,7 @@ python -m pytest tests/ -v
 │   └── reporting/         # ReportLab dynamic forensic PDF generator
 ├── frontend/
 │   ├── index.html         # Master UI template
+│   ├── package.json       # Frontend Vite build configuration
 │   └── src/
 │       ├── app.js         # Master controller & state manager
 │       ├── chart_renderer.js # Suspicious activity risk area chart
@@ -127,11 +134,11 @@ python -m pytest tests/ -v
 │       ├── graph_canvas.js# 2D Canvas graph renderer with particle flows
 │       ├── style.css      # SaaS design system
 │       └── timeline.js    # Temporal stage progression controller
-├── tests/                 # 88 automated pytest test suites
+├── tests/                 # 89 automated pytest test suites
 ├── jarvis_custom_test.csv # Sample transaction dataset
 ├── render.yaml            # Render deployment blueprint
 ├── requirements.txt       # Production & test dependencies
-├── .env.example           # Environment template
+├── .python-version        # Explicit Python 3.11 declaration for cloud runners
 └── pytest.ini             # Pytest configuration
 ```
 
