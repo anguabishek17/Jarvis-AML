@@ -22,56 +22,42 @@
 ## 🏗 System Architecture & End-to-End Flow
 
 ```mermaid
-flowchart TD
-    subgraph INGESTION["1. Ingestion & Validation Layer"]
-        CSV["Custom CSV Upload / JSON Feed"]
-        VAL["Transaction Validator (Schema, Nulls, Timestamps, Amounts)"]
-        NORM["Normalizer (ISO-8601, INR Currency, Channels)"]
-        CSV --> VAL --> NORM
+graph TD
+    subgraph S1["1. Ingestion & Validation"]
+        A["Custom CSV / JSON Feed"] --> B["Transaction Validator"]
+        B --> C["ISO-8601 / INR Normalizer"]
     end
 
-    subgraph GRAPH_LAYER["2. Topological Graph Engine"]
-        FMG["Financial MultiGraph (Directed Multigraph)"]
-        CENT["Centrality Engine (Betweenness, PageRank, Degree)"]
-        COMM["Community Detection (Louvain / Greedy Modularity)"]
-        NORM --> FMG
-        FMG --> CENT
-        FMG --> COMM
+    subgraph S2["2. Topological Graph Engine"]
+        C --> D["Financial MultiGraph"]
+        D --> E["Centrality Engine"]
+        D --> F["Community Detection"]
     end
 
-    subgraph DETECTORS["3. Deterministic AML Detection Suite"]
-        LAY["Layering Trails (Multi-Hop Retention)"]
-        CIRC["Circular Round-Tripping (Cycles)"]
-        RAP["Rapid Velocity (Low Dwell Time Mules)"]
-        FO["Fan-Out (Structuring / Smurfing)"]
-        FI["Fan-In (Funnel Aggregation)"]
-        FMG --> LAY & CIRC & RAP & FO & FI
+    subgraph S3["3. AML Detection Suite"]
+        D --> G["Layering Trails"]
+        D --> H["Circular Round-Tripping"]
+        D --> I["Rapid Velocity Mules"]
+        D --> J["Fan-Out Structuring"]
+        D --> K["Fan-In Aggregation"]
     end
 
-    subgraph ANALYTICS["4. Intelligence & Explainability Core"]
-        ROLES["Role Inference Engine (Originator, Mule, Disperser, Aggregator, Sink)"]
-        PATHS["Attack Path Reconstruction (Origin-to-Sink Chains)"]
-        DNA["Money Trail DNA™ (6-Gene Behavioural Fingerprint + SHA-256)"]
-        PRIO["Investigation Priority Scorer (0-100 Triage Matrix)"]
-        TEMP["Temporal Stage Progression (5 Evolution Stages)"]
-        
-        LAY & CIRC & RAP & FO & FI --> ROLES
-        ROLES --> PATHS --> DNA
-        ROLES & PATHS --> PRIO
-        FMG & ROLES --> TEMP
+    subgraph S4["4. Intelligence Core"]
+        G & H & I & J & K --> L["Role Inference Engine"]
+        L --> M["Attack Path Reconstruction"]
+        M --> N["Money Trail DNA 6-Gene Fingerprint"]
+        L & M --> O["Investigation Priority Scorer 0-100"]
+        D & L --> P["5-Stage Temporal Progression"]
     end
 
-    subgraph ASSISTANT_SIM["5. Copilot & What-If Simulator"]
-        SIM["Investigation Simulator (Counterfactual Entity/Edge Removal)"]
-        COP["Investigation Copilot (Grounded Natural Language Assistant)"]
-        DNA & PRIO & PATHS & ROLES --> SIM & COP
+    subgraph S5["5. Assistant & Simulation"]
+        N & O & M & L --> Q["What-If Scenario Simulator"]
+        N & O & M & L --> R["Investigation Copilot Assistant"]
     end
 
-    subgraph OUTPUT["6. Presentation & Forensic Export"]
-        UI["High-Performance Web UI (Canvas Flow, Cytoscape, Timeline)"]
-        PDF["Forensic PDF Dossier Generator (ReportLab, 14 Sections, SHA-256)"]
-        SIM & COP --> UI
-        DNA & PRIO & PATHS & ROLES --> PDF
+    subgraph S6["6. Presentation & Forensic Export"]
+        Q & R --> S["Interactive Web UI & Canvas"]
+        N & O & M & L --> T["Forensic PDF Dossier Generator"]
     end
 ```
 
@@ -83,15 +69,15 @@ All benchmarks measured on Python 3.11.9 runtime:
 
 | Operational Pipeline Stage | Data Volume / Complexity | Average Latency | Algorithmic Complexity | Memory Footprint |
 | :--- | :--- | :--- | :--- | :--- |
-| **Transaction Validation** | 10,000 txs (CSV/JSON) | **14.2 ms** | $\mathcal{O}(N)$ | $< 8 \text{ MB}$ |
-| **MultiGraph Construction** | 5,000 nodes / 12,000 edges | **18.5 ms** | $\mathcal{O}(V + E)$ | $\approx 12 \text{ MB}$ |
-| **Topological AML Detection** | 5 Detectors concurrent | **24.8 ms** | $\mathcal{O}(V \cdot E)$ | $\approx 15 \text{ MB}$ |
-| **Account Role Inference** | Quantitative Feature Matrix | **6.1 ms** | $\mathcal{O}(V)$ | $< 2 \text{ MB}$ |
-| **Attack Path Reconstruction** | Multi-hop DFS + pruning | **12.4 ms** | $\mathcal{O}(V + E)$ | $< 4 \text{ MB}$ |
-| **Money Trail DNA™ Generation**| 6-Gene Fingerprint + SHA-256 | **1.8 ms** | $\mathcal{O}(K \text{ paths})$ | $< 1 \text{ MB}$ |
-| **What-If Graph Simulation** | Full pipeline recomputation | **28.6 ms** | $\mathcal{O}(V + E)$ | $\approx 16 \text{ MB}$ |
-| **Copilot Query Resolution** | 2-Layer deterministic grounding| **4.2 ms** | $\mathcal{O}(1) \text{ lookup}$ | $< 1 \text{ MB}$ |
-| **Forensic PDF Dossier Export**| 6-page comprehensive report | **165.0 ms** | ReportLab flowables | $\approx 22 \text{ MB}$ |
+| **Transaction Validation** | 10,000 txs (CSV/JSON) | **14.2 ms** | O(N) | < 8 MB |
+| **MultiGraph Construction** | 5,000 nodes / 12,000 edges | **18.5 ms** | O(V + E) | ~ 12 MB |
+| **Topological AML Detection** | 5 Detectors concurrent | **24.8 ms** | O(V * E) | ~ 15 MB |
+| **Account Role Inference** | Quantitative Feature Matrix | **6.1 ms** | O(V) | < 2 MB |
+| **Attack Path Reconstruction** | Multi-hop DFS + pruning | **12.4 ms** | O(V + E) | < 4 MB |
+| **Money Trail DNA™ Generation**| 6-Gene Fingerprint + SHA-256 | **1.8 ms** | O(K paths) | < 1 MB |
+| **What-If Graph Simulation** | Full pipeline recomputation | **28.6 ms** | O(V + E) | ~ 16 MB |
+| **Copilot Query Resolution** | 2-Layer deterministic grounding| **4.2 ms** | O(1) lookup | < 1 MB |
+| **Forensic PDF Dossier Export**| 6-page comprehensive report | **165.0 ms** | ReportLab flowables | ~ 22 MB |
 
 ---
 
@@ -100,52 +86,15 @@ All benchmarks measured on Python 3.11.9 runtime:
 JARVIS-AML categorizes all transacting entities through deterministic mathematical heuristics:
 
 ```mermaid
-classDiagram
-    class TransactingEntity {
-        +String account_id
-        +Float total_inflow_inr
-        +Float total_outflow_inr
-        +Float forwarding_ratio
-        +Float avg_dwell_time_minutes
-        +Float betweenness_centrality
-    }
-    class Originator {
-        +High initial disbursement
-        +Zero prior inward flow
-        +Inflow/Outflow ratio ~ 0%
-    }
-    class Mule {
-        +Forwarding ratio >= 80%
-        +Dwell time < 30 mins
-        +Pass-through transit
-    }
-    class Disperser {
-        +Out-degree >= 3
-        +Fan-out structuring
-        +High dispersion entropy
-    }
-    class Aggregator {
-        +In-degree >= 3
-        +Fan-in convergence
-        +High terminal volume
-    }
-    class Sink {
-        +Final destination
-        +Zero onward transfers
-        +Offshore / Escrow / Cash-out
-    }
-    class LegitimateEntity {
-        +Normal payroll/merchant dwell
-        +Forwarding ratio < 30%
-        +Benign commercial noise
-    }
-
-    TransactingEntity <|-- Originator
-    TransactingEntity <|-- Mule
-    TransactingEntity <|-- Disperser
-    TransactingEntity <|-- Aggregator
-    TransactingEntity <|-- Sink
-    TransactingEntity <|-- LegitimateEntity
+graph TD
+    TE["Transacting Entity<br/>• Inflow / Outflow Total<br/>• Forwarding Ratio<br/>• Dwell Latency<br/>• Network Centrality"]
+    
+    TE --> ORG["1. Originator<br/>• High initial disbursement<br/>• Zero prior inward flow<br/>• Source of syndicate funds"]
+    TE --> MUL["2. Mule Account<br/>• Forwarding ratio >= 80%<br/>• Dwell time < 30 mins<br/>• Rapid pass-through"]
+    TE --> DIS["3. Disperser Hub<br/>• High out-degree (>= 3)<br/>• Structuring / Fan-out<br/>• High dispersion entropy"]
+    TE --> AGR["4. Aggregator Hub<br/>• High in-degree (>= 3)<br/>• Fan-in convergence<br/>• Funnel collector"]
+    TE --> SNK["5. Terminal Sink<br/>• Final destination<br/>• Zero onward transfers<br/>• Offshore / Escrow deposit"]
+    TE --> LEG["6. Legitimate Commercial<br/>• Normal business dwell<br/>• Forwarding ratio < 30%<br/>• Benign payroll / vendor"]
 ```
 
 ---
@@ -154,7 +103,7 @@ classDiagram
 
 The system constructs a standardized, tamper-evident behavioural signature for each reconstructed attack trail:
 
-$$\text{DNA} = \mathbf{G}_{\text{TYP}} \cdot \mathbf{G}_{\text{RET}} \cdot \mathbf{G}_{\text{VEL}} \cdot \mathbf{G}_{\text{DISP}} \cdot \mathbf{G}_{\text{TOP}} \cdot \mathbf{G}_{\text{ROLES}}$$
+> **DNA Formula:** `DNA = G(TYP) · G(RET) · G(VEL) · G(DISP) · G(TOP) · G(ROLES)`
 
 | Gene | Identifier | Biological / Behavioural Meaning | Output Format |
 | :--- | :--- | :--- | :--- |
