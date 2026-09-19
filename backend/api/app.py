@@ -44,6 +44,7 @@ app = FastAPI(
 # CORS Configuration - Support FRONTEND_ORIGIN env var for production and local origins
 allowed_origins_env = os.environ.get("FRONTEND_ORIGIN", "")
 allowed_origins = [
+    "https://jarvis-aml.vercel.app",
     "http://127.0.0.1:8089",
     "http://localhost:8089",
     "http://localhost:5173",
@@ -59,6 +60,7 @@ if allowed_origins_env:
         cleaned = origin.strip()
         if cleaned and cleaned not in allowed_origins:
             allowed_origins.append(cleaned)
+
 
 # If in development without FRONTEND_ORIGIN, or if wildcard specified
 if not allowed_origins_env:

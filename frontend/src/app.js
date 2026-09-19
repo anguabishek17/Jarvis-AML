@@ -6,23 +6,31 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // Support custom environment configuration (e.g. Vercel deployment with Render backend)
-  const configuredApiBase = window.__API_BASE_URL__ || 
-    (typeof process !== "undefined" && process.env && process.env.VITE_API_BASE_URL) ||
-    (typeof window !== "undefined" && window.VITE_API_BASE_URL);
+  const envApiBase = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+    (typeof window !== "undefined" && (window.__API_BASE_URL__ || window.VITE_API_BASE_URL)) ||
+    (typeof process !== "undefined" && process.env && process.env.VITE_API_BASE_URL);
 
-  let API_BASE = configuredApiBase;
-  if (!API_BASE) {
-    if (window.location && window.location.origin && window.location.origin.startsWith("http")) {
-      // If served by live-server or local static server on a different port (e.g. 5500, 3000, 5173), default to backend 8089
-      if (window.location.port && ["5500", "5173", "3000", "8080"].includes(window.location.port)) {
-        API_BASE = "http://127.0.0.1:8089";
+  let rawApiBase = envApiBase;
+  if (!rawApiBase) {
+    if (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin.startsWith("http")) {
+      const origin = window.location.origin;
+      const hostname = window.location.hostname || "";
+      // If deployed on Vercel (e.g. jarvis-aml.vercel.app), default to production Render backend
+      if (hostname.includes("vercel.app") || hostname.includes("onrender.com")) {
+        rawApiBase = "https://jarvis-aml.onrender.com";
+      } else if (window.location.port && ["5500", "5173", "3000", "8080"].includes(window.location.port)) {
+        rawApiBase = "http://127.0.0.1:8089";
       } else {
-        API_BASE = window.location.origin;
+        rawApiBase = origin;
       }
     } else {
-      API_BASE = "http://127.0.0.1:8089";
+      rawApiBase = "http://127.0.0.1:8089";
     }
   }
+
+  // Normalize API_BASE by stripping trailing slashes
+  const API_BASE = (rawApiBase || "http://127.0.0.1:8089").replace(/\/+$/, "");
+
 
   // Update Settings modal input if present
   const settingsInput = document.getElementById("settingsApiUrl");

@@ -177,7 +177,9 @@ class CopilotEngine:
 
     def _extract_account_id(self, query: str, context: InvestigationCopilotContext) -> Optional[str]:
         """Extracts valid account ID present in the query from actual case nodes."""
-        for n in context.nodes:
+        # Sort node account IDs by length descending to match full account names first
+        sorted_nodes = sorted(context.nodes, key=lambda n: len(n.get("id", "")), reverse=True)
+        for n in sorted_nodes:
             acc_id = n.get("id")
             if acc_id and acc_id.lower() in query.lower():
                 return acc_id
@@ -191,6 +193,7 @@ class CopilotEngine:
             # If account explicitly mentioned in query but not in case
             return candidate
         return None
+
 
     def _extract_path_id(self, query: str, context: InvestigationCopilotContext) -> Optional[Dict[str, Any]]:
         """Extracts specific attack path if referenced."""
