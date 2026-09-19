@@ -154,3 +154,51 @@ def test_copilot_api_endpoints(client):
     assert "actions" in q_data
     assert "confidence" in q_data
     assert len(q_data["actions"]) > 0
+
+
+def test_copilot_custom_case_account_query_regression(client):
+    """
+    Regression Test: Given a custom case created from benchmark CSV containing ACC_GATEKEEPER_MULE_1,
+    Copilot must resolve 'Why is ACC_GATEKEEPER_MULE important?' to the actual active node,
+    and return evidence-grounded findings rather than reporting zero recorded transactions.
+    """
+    from backend.ingestion.sample_generator import get_sample_csv_text
+    
+    # 1. Create custom case via /api/investigate/custom
+    csv_payload = get_sample_csv_text()
+    resp = client.post("/api/investigate/custom", json={"csv_text": csv_payload, "dataset_name": "Regression Test Case"})
+    assert resp.status_code == 200
+    custom_case = resp.json()
+    case_id = custom_case["scenario_id"]
+
+    # 2. Query Copilot context
+    ctx_resp = client.get(f"/api/copilot/context/{case_id}")
+    assert ctx_resp.status_code == 200
+    ctx_json = ctx_resp.json()
+    assert ctx_json["account_count"] == 16
+
+    # 3. Query Copilot for ACC_GATEKEEPER_MULE (both with and without suffix)
+    q_resp = client.post("/api/copilot/query", json={
+        "scenario_id": case_id,
+        "question": "Why is ACC_GATEKEEPER_MULE important?"
+    })
+    assert q_resp.status_code == 200
+    q_res = q_resp.json()
+
+    # Copilot must NOT report lack of transactions
+    assert "does not participate in any recorded transactions" not in q_res["answer"]
+    assert "don't have sufficient evidence" not in q_res["answer"]
+    assert len(q_res["why"]) > 0
+    assert len(q_res["evidence"]) > 0
+    assert len(q_res["actions"]) > 0
+
+    # 4. Query genuinely unknown account and verify fallback is retained
+    unknown_resp = client.post("/api/copilot/query", json={
+        "scenario_id": case_id,
+        "question": "Why is ACC_NONEXISTENT_ACCOUNT important?"
+    })
+    assert unknown_resp.status_code == 200
+    unk_res = unknown_resp.json()
+    assert "I don't have sufficient evidence in the current investigation data for account ACC_NONEXISTENT_ACCOUNT" in unk_res["answer"]
+    assert "does not participate in any recorded transactions" in unk_res["why"][0]
+

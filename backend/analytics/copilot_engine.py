@@ -176,22 +176,42 @@ class CopilotEngine:
         return self._handle_generic_grounded_query(context, q)
 
     def _extract_account_id(self, query: str, context: InvestigationCopilotContext) -> Optional[str]:
-        """Extracts valid account ID present in the query from actual case nodes."""
-        # Sort node account IDs by length descending to match full account names first
+        """
+        Extracts valid account ID present in the query from actual case nodes.
+        Supports exact match, word-boundary match, and token-prefix matching
+        (e.g., ACC_GATEKEEPER_MULE matching active node ACC_GATEKEEPER_MULE_1).
+        """
+        q_lower = query.lower()
+        # 1. Exact or substring match sorted by length descending
         sorted_nodes = sorted(context.nodes, key=lambda n: len(n.get("id", "")), reverse=True)
         for n in sorted_nodes:
             acc_id = n.get("id")
-            if acc_id and acc_id.lower() in query.lower():
+            if acc_id and acc_id.lower() in q_lower:
                 return acc_id
-        # Regex search for ACC_ pattern
-        match = re.search(r'\b(ACC_[A-Za-z0-9_]+)\b', query, re.IGNORECASE)
-        if match:
-            candidate = match.group(1).upper()
+
+        # 2. Extract potential candidate tokens matching ACC_ pattern
+        matches = re.findall(r'\b(ACC_[A-Za-z0-9_]+)\b', query, re.IGNORECASE)
+        for cand in matches:
+            cand_upper = cand.upper()
+            # Exact node match
             for n in context.nodes:
-                if n.get("id", "").upper() == candidate:
+                if n.get("id", "").upper() == cand_upper:
                     return n.get("id")
-            # If account explicitly mentioned in query but not in case
-            return candidate
+            
+            # Fuzzy/Prefix/Suffix match: e.g. ACC_GATEKEEPER_MULE matching ACC_GATEKEEPER_MULE_1 or vice versa
+            cand_clean = re.sub(r'_[0-9A-Za-z]$', '', cand_upper)
+            for n in context.nodes:
+                n_id_upper = n.get("id", "").upper()
+                n_id_clean = re.sub(r'_[0-9A-Za-z]$', '', n_id_upper)
+                if n_id_upper.startswith(cand_upper) or cand_upper.startswith(n_id_upper):
+                    return n.get("id")
+                if cand_clean and (n_id_clean == cand_clean or n_id_clean.startswith(cand_clean) or cand_clean.startswith(n_id_clean)):
+                    return n.get("id")
+
+        if matches:
+            # If candidate was explicitly specified but doesn't exist anywhere in the case
+            return matches[0].upper()
+
         return None
 
 
