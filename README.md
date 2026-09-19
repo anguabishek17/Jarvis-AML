@@ -23,42 +23,15 @@
 
 ```mermaid
 graph TD
-    subgraph S1["1. Ingestion & Validation"]
-        A["Custom CSV / JSON Feed"] --> B["Transaction Validator"]
-        B --> C["ISO-8601 / INR Normalizer"]
-    end
-
-    subgraph S2["2. Topological Graph Engine"]
-        C --> D["Financial MultiGraph"]
-        D --> E["Centrality Engine"]
-        D --> F["Community Detection"]
-    end
-
-    subgraph S3["3. AML Detection Suite"]
-        D --> G["Layering Trails"]
-        D --> H["Circular Round-Tripping"]
-        D --> I["Rapid Velocity Mules"]
-        D --> J["Fan-Out Structuring"]
-        D --> K["Fan-In Aggregation"]
-    end
-
-    subgraph S4["4. Intelligence Core"]
-        G & H & I & J & K --> L["Role Inference Engine"]
-        L --> M["Attack Path Reconstruction"]
-        M --> N["Money Trail DNA 6-Gene Fingerprint"]
-        L & M --> O["Investigation Priority Scorer 0-100"]
-        D & L --> P["5-Stage Temporal Progression"]
-    end
-
-    subgraph S5["5. Assistant & Simulation"]
-        N & O & M & L --> Q["What-If Scenario Simulator"]
-        N & O & M & L --> R["Investigation Copilot Assistant"]
-    end
-
-    subgraph S6["6. Presentation & Forensic Export"]
-        Q & R --> S["Interactive Web UI & Canvas"]
-        N & O & M & L --> T["Forensic PDF Dossier Generator"]
-    end
+    A["📥 1. Ingestion & Validation<br/>• Custom CSV / JSON Feed<br/>• Schema & Pre-Analysis Validator<br/>• ISO-8601 & INR Normalizer"] --> B["🌐 2. Topological Graph Engine<br/>• Financial MultiGraph Builder<br/>• Centrality & Community Detection"]
+    
+    B --> C["🔍 3. AML Detection Suite<br/>• Layering, Cycles & Rapid Velocity<br/>• Structuring (Fan-Out) & Funnel (Fan-In)"]
+    
+    C --> D["🧠 4. Intelligence & Explainability Core<br/>• Account Role Inference (Mules, Originators, Sinks)<br/>• Attack Path Reconstruction<br/>• 6-Gene Money Trail DNA™ + SHA-256 Seal<br/>• Investigation Priority Matrix (0-100)"]
+    
+    D --> E["🔬 5. Copilot & What-If Simulation<br/>• Zero-Hallucination Investigation Copilot<br/>• Counterfactual Disruption Simulator"]
+    
+    E --> F["📊 6. Operations Center & Output<br/>• Interactive 2D Force-Directed Canvas<br/>• 5-Stage Temporal Timeline Scrubber<br/>• Multi-Page Forensic PDF Dossier Export"]
 ```
 
 ---
