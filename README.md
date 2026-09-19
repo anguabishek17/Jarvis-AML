@@ -19,19 +19,90 @@
 
 ---
 
-## 🏗 System Architecture & End-to-End Flow
+## 🏗 End-to-End System Architecture (Hackathon Core)
 
 ```mermaid
-graph TD
-    A["📥 1. Ingestion & Validation<br/>• Custom CSV / JSON Feed<br/>• Schema & Pre-Analysis Validator<br/>• ISO-8601 & INR Normalizer"] --> B["🌐 2. Topological Graph Engine<br/>• Financial MultiGraph Builder<br/>• Centrality & Community Detection"]
-    
-    B --> C["🔍 3. AML Detection Suite<br/>• Layering, Cycles & Rapid Velocity<br/>• Structuring (Fan-Out) & Funnel (Fan-In)"]
-    
-    C --> D["🧠 4. Intelligence & Explainability Core<br/>• Account Role Inference (Mules, Originators, Sinks)<br/>• Attack Path Reconstruction<br/>• 6-Gene Money Trail DNA™ + SHA-256 Seal<br/>• Investigation Priority Matrix (0-100)"]
-    
-    D --> E["🔬 5. Copilot & What-If Simulation<br/>• Zero-Hallucination Investigation Copilot<br/>• Counterfactual Disruption Simulator"]
-    
-    E --> F["📊 6. Operations Center & Output<br/>• Interactive 2D Force-Directed Canvas<br/>• 5-Stage Temporal Timeline Scrubber<br/>• Multi-Page Forensic PDF Dossier Export"]
+graph LR
+    %% Data Ingestion & Normalization
+    subgraph INGEST ["📦 1. INGESTION & VALIDATION"]
+        direction TB
+        RAW["Raw Transactions<br/>(CSV / JSON / Stream)"]
+        VAL["Pre-Analysis Validator<br/>(Schema · Currency · Nulls)"]
+        RAW --> VAL
+    end
+
+    %% Graph & Topology Engine
+    subgraph TOPOLOGY ["🌐 2. TOPOLOGICAL MULTIGRAPH"]
+        direction TB
+        FMG["Directed Financial Graph<br/>(NetworkX MultiDiGraph)"]
+        CENT["Centrality & Community<br/>(Betweenness · Louvain)"]
+        FMG --> CENT
+    end
+
+    %% Deterministic AML Engine
+    subgraph AML ["🔍 3. AML DETECTION ENGINES"]
+        direction TB
+        D1["Layering Chains (High-Retention)"]
+        D2["Circular Round-Tripping (Cycles)"]
+        D3["Rapid Velocity (Low Dwell Mules)"]
+        D4["Structuring & Funnels (Fan-In/Out)"]
+    end
+
+    %% Forensic Intelligence Core
+    subgraph INTEL ["🧠 4. FORENSIC INTELLIGENCE CORE"]
+        direction TB
+        ROLE["Role Inference Engine<br/>(Originator · Mule · Sink)"]
+        PATH["Attack Path Reconstructor<br/>(Max-Hop Flow Trails)"]
+        DNA["Money Trail DNA™<br/>(6-Gene Vector + SHA-256)"]
+        PRIO["Triage Priority Matrix<br/>(0-100 Mathematical Risk)"]
+        ROLE --> PATH --> DNA --> PRIO
+    end
+
+    %% Interactive & Copilot Layer
+    subgraph INTERACT ["🔬 5. INVESTIGATION & COPILOT"]
+        direction TB
+        SIM["What-If Simulator<br/>(Counterfactual Removal)"]
+        COP["Investigation Copilot<br/>(Zero-Hallucination AI)"]
+    end
+
+    %% Output & Presentation
+    subgraph OPS ["📊 6. OPERATIONS CENTER"]
+        direction TB
+        UI["Real-Time Canvas UI<br/>(Particle Flows · Cytoscape)"]
+        PDF["Forensic PDF Dossier<br/>(14 Audit Sections · SHA Seal)"]
+    end
+
+    %% Pipeline Connections
+    VAL ==> FMG
+    FMG ==> AML
+    AML ==> ROLE
+    PRIO ==> INTERACT
+    INTERACT ==> OPS
+
+    %% Styling & Theme Accents
+    style INGEST fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    style TOPOLOGY fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc
+    style AML fill:#0f172a,stroke:#f43f5e,stroke-width:2px,color:#f8fafc
+    style INTEL fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc
+    style INTERACT fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
+    style OPS fill:#0f172a,stroke:#a855f7,stroke-width:2px,color:#f8fafc
+
+    style RAW fill:#1e293b,stroke:#0284c7,color:#ffffff
+    style VAL fill:#1e293b,stroke:#0284c7,color:#ffffff
+    style FMG fill:#1e293b,stroke:#6366f1,color:#ffffff
+    style CENT fill:#1e293b,stroke:#6366f1,color:#ffffff
+    style D1 fill:#1e293b,stroke:#e11d48,color:#ffffff
+    style D2 fill:#1e293b,stroke:#e11d48,color:#ffffff
+    style D3 fill:#1e293b,stroke:#e11d48,color:#ffffff
+    style D4 fill:#1e293b,stroke:#e11d48,color:#ffffff
+    style ROLE fill:#1e293b,stroke:#059669,color:#ffffff
+    style PATH fill:#1e293b,stroke:#059669,color:#ffffff
+    style DNA fill:#1e293b,stroke:#059669,color:#ffffff
+    style PRIO fill:#1e293b,stroke:#059669,color:#ffffff
+    style SIM fill:#1e293b,stroke:#d97706,color:#ffffff
+    style COP fill:#1e293b,stroke:#d97706,color:#ffffff
+    style UI fill:#1e293b,stroke:#9333ea,color:#ffffff
+    style PDF fill:#1e293b,stroke:#9333ea,color:#ffffff
 ```
 
 ---
